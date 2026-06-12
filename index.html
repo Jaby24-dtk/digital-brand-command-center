@@ -46,6 +46,44 @@
     ════════════════════════════════════════════════════════════════
   -->
 
+  <!-- Inline global error handler — registered before any external script loads -->
+  <script>
+    window.onerror = function(msg, src, line, col) {
+      var el = document.getElementById('pre-js') || document.getElementById('app');
+      if (el) el.innerHTML =
+        '<div style="padding:32px;font-family:sans-serif;max-width:680px;margin:40px auto">' +
+        '<h3 style="color:#C43040;font-size:15px;margin:0 0 12px">&#9888; JavaScript error — dashboard cannot start</h3>' +
+        '<pre style="background:rgba(196,48,64,0.07);border:1px solid rgba(196,48,64,0.2);padding:12px;' +
+        'border-radius:8px;font-size:11px;white-space:pre-wrap;word-break:break-all;margin:0 0 12px">' +
+        (msg||'') + '\n' + (src||'') + ':' + (line||0) + ':' + (col||0) + '</pre>' +
+        '<button onclick="location.reload()" style="padding:8px 20px;background:#FFD0E6;border:1px solid #F4AECB;' +
+        'border-radius:8px;cursor:pointer;font-weight:600;font-size:13px">Reload page</button>' +
+        '</div>';
+      return false;
+    };
+  </script>
+
+  <!-- Pre-JS loading screen — visible immediately, removed by app.js on mount -->
+  <style>
+    #pre-js {
+      position: fixed; inset: 0; display: flex; align-items: center;
+      justify-content: center; z-index: 9999;
+      background: linear-gradient(135deg, #FFD0E6 0%, #F8F2FF 42%, #C8EDD8 100%);
+      font-family: 'Inter', sans-serif;
+    }
+    #pre-js .pj-box { text-align: center; padding: 32px; }
+    #pre-js .pj-icon { font-size: 40px; margin-bottom: 16px; }
+    #pre-js .pj-title { font-size: 15px; font-weight: 600; color: #1A1028; margin: 0 0 8px; }
+    #pre-js .pj-sub { font-size: 13px; color: rgba(26,16,40,0.55); margin: 0; }
+  </style>
+  <div id="pre-js">
+    <div class="pj-box">
+      <div class="pj-icon">⏳</div>
+      <p class="pj-title">Loading Digital Brand Command Center</p>
+      <p class="pj-sub">If this persists more than 5 seconds, open browser console (F12) for errors</p>
+    </div>
+  </div>
+
   <!-- Config must load before everything else -->
   <script src="config.js"></script>
 

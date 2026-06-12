@@ -164,6 +164,9 @@ function BrandRow(brand) {
 }
 
 function BrandAssetSummary(brands) {
+  const body = (brands && brands.length)
+    ? brands.map(BrandRow).join('')
+    : '<tr><td colspan="6" style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px">No brand data yet — run DBCC → Sync Drive Files in your Google Sheet</td></tr>';
   return `
     <section id="brand-summary" class="dashboard-section">
       ${SectionHeader({ title: 'Brand Asset Summary', subtitle: 'File counts and health scores per brand' })}
@@ -180,9 +183,7 @@ function BrandAssetSummary(brands) {
                 <th>Health</th>
               </tr>
             </thead>
-            <tbody>
-              ${brands.map(BrandRow).join('')}
-            </tbody>
+            <tbody>${body}</tbody>
           </table>
         </div>
       </div>
@@ -282,6 +283,15 @@ function RenameBar(item) {
 }
 
 function RenameCompliance(data) {
+  if (!data || data.length === 0) {
+    return `
+      <section id="rename-compliance" class="dashboard-section dashboard-section--half">
+        ${SectionHeader({ title: 'File Rename Compliance', subtitle: 'No data — run DBCC → Sync Drive Files' })}
+        <div class="glass-card detail-card" style="padding:32px;text-align:center;color:var(--text-muted);font-size:13px">
+          No rename data yet. Run the Drive sync first.
+        </div>
+      </section>`;
+  }
   const avg = (data.reduce((s, d) => s + d.compliance, 0) / data.length).toFixed(1);
   return `
     <section id="rename-compliance" class="dashboard-section dashboard-section--half">

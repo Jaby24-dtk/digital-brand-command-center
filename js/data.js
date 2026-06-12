@@ -79,15 +79,18 @@ async function fetchTab(tabName) {
     throw err;
   }
 
-  const preview = text.substring(0, 300);
+  const preview      = text.substring(0, 300);
+  const responseSize = text.length;
+  console.log('[DBCC] Response size:', responseSize, 'bytes');
   console.log('[DBCC] Response preview:', preview);
 
   // ── HTTP error ─────────────────────────────────────────────────────────────
   if (!res.ok) {
     const err = new Error(`HTTP ${res.status} — failed to fetch tab "${tabName}"`);
-    err.url        = url;
-    err.httpStatus = res.status;
-    err.preview    = preview;
+    err.url          = url;
+    err.httpStatus   = res.status;
+    err.responseSize = responseSize;
+    err.preview      = preview;
     throw err;
   }
 
@@ -99,9 +102,10 @@ async function fetchTab(tabName) {
       `Open your Google Sheet → Share → Anyone with the link → Viewer, ` +
       `then run DBCC → Sync Drive Files to create the Drive Live Registry tab.`
     );
-    err.url        = url;
-    err.httpStatus = res.status;
-    err.preview    = preview;
+    err.url          = url;
+    err.httpStatus   = res.status;
+    err.responseSize = responseSize;
+    err.preview      = preview;
     throw err;
   }
 
@@ -112,9 +116,10 @@ async function fetchTab(tabName) {
   } catch (parseErr) {
     console.error('[DBCC] CSV parse error:', parseErr.message);
     const err = new Error(`CSV parse error for tab "${tabName}": ${parseErr.message}`);
-    err.url        = url;
-    err.httpStatus = res.status;
-    err.preview    = preview;
+    err.url          = url;
+    err.httpStatus   = res.status;
+    err.responseSize = responseSize;
+    err.preview      = preview;
     throw err;
   }
 
@@ -318,10 +323,12 @@ async function fetchLiveData() {
   const rows = await fetchTab(CONFIG.TAB_NAMES.DRIVE_REGISTRY);
 
   if (!rows || rows.length < 2) {
-    throw new Error(
-      `The Drive Live Registry tab is empty. ` +
+    const err = new Error(
+      `Drive Live Registry tab has ${rows ? rows.length : 0} row(s) — it needs data. ` +
       `Open your Google Sheet and run DBCC → Sync Drive Files first.`
     );
+    err.rows = rows ? rows.length : 0;
+    throw err;
   }
 
   const brands           = parseBrandSummary(rows);
