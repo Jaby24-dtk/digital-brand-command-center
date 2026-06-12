@@ -4,30 +4,271 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Digital Brand Command Center — Live brand asset dashboard" />
-  <meta name="theme-color" content="#06060E" />
+  <meta name="theme-color" content="#FFD0E6" />
   <title>Digital Brand Command Center</title>
 
-  <!-- Preconnect -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-
-  <!-- Phosphor Icons (SVG icon system via CSS) -->
-  <script src="https://unpkg.com/@phosphor-icons/web@2.1.1" defer></script>
-
-  <!-- Inter font -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Inter+Tight:wght@600;700;800&display=swap" rel="stylesheet" />
 
-  <!-- Styles -->
-  <link rel="stylesheet" href="css/styles.css" />
-  <link rel="stylesheet" href="css/animations.css" />
+  <!-- Phosphor Icons -->
+  <script src="https://unpkg.com/@phosphor-icons/web@2.1.1" defer></script>
 
-  <!-- Favicon inline SVG -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23C9A96E'/><text x='50%25' y='50%25' dominant-baseline='central' text-anchor='middle' font-size='18' font-family='serif'>◈</text></svg>" />
+
+  <style>
+/* ================================================================
+   DIGITAL BRAND COMMAND CENTER — Light Pastel Theme
+   ================================================================ */
+:root {
+  --bg-gradient:      linear-gradient(135deg, #FFD0E6 0%, #F8F2FF 42%, #C8EDD8 100%);
+  --bg-card:          rgba(255,255,255,0.58);
+  --bg-card-hover:    rgba(255,255,255,0.78);
+  --bg-input:         rgba(255,255,255,0.50);
+  --bg-sidebar:       rgba(255,240,246,0.72);
+  --bg-header:        rgba(255,245,250,0.75);
+  --pink:             #C94F80;
+  --pink-light:       #F4AECB;
+  --pink-pastel:      #FFD0E6;
+  --pink-dark:        #9B2E5E;
+  --pink-dim:         rgba(201,79,128,0.09);
+  --pink-border:      rgba(201,79,128,0.20);
+  --pink-glow:        rgba(201,79,128,0.12);
+  --pink-grad:        linear-gradient(135deg,#D4608A 0%,#F4AECB 50%,#D4608A 100%);
+  --green:            #2B9E6B;
+  --green-light:      #9DDBB5;
+  --green-pastel:     #C8EDD8;
+  --green-dim:        rgba(43,158,107,0.09);
+  --green-border:     rgba(43,158,107,0.20);
+  --status-success:   #1E8C5A;
+  --status-success-bg:rgba(30,140,90,0.10);
+  --status-warning:   #C47A0A;
+  --status-warning-bg:rgba(196,122,10,0.10);
+  --status-danger:    #C43040;
+  --status-danger-bg: rgba(196,48,64,0.10);
+  --status-info:      #1E5FC4;
+  --status-info-bg:   rgba(30,95,196,0.10);
+  --status-orange:    #BC5015;
+  --status-teal:      #0B8FA0;
+  --status-purple:    #7030C0;
+  --text-primary:   #1A1028;
+  --text-secondary: rgba(26,16,40,0.68);
+  --text-muted:     rgba(26,16,40,0.42);
+  --text-pink:      var(--pink);
+  --border-subtle:  rgba(26,16,40,0.09);
+  --border-strong:  rgba(26,16,40,0.16);
+  --border-white:   rgba(255,255,255,0.75);
+  --shadow-card:    0 2px 20px rgba(200,80,130,0.07),0 1px 0 rgba(255,255,255,0.85) inset;
+  --shadow-hover:   0 8px 32px rgba(200,80,130,0.14),0 0 0 1px var(--pink-border);
+  --shadow-sidebar: 1px 0 0 rgba(201,79,128,0.12);
+  --blur-glass: blur(24px);
+  --blur-xl:    blur(60px);
+  --gap-xs:4px; --gap-sm:8px; --gap-md:16px; --gap-lg:24px; --gap-xl:32px; --gap-2xl:48px;
+  --r-sm:6px; --r-md:10px; --r-lg:14px; --r-xl:18px; --r-pill:100px;
+  --t-fast:120ms ease; --t-base:220ms ease; --t-slow:380ms ease;
+  --sidebar-w:220px; --header-h:60px; --content-max:1520px; --section-gap:28px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px;scroll-behavior:smooth}
+a{text-decoration:none;color:inherit}
+ul,ol{list-style:none}
+button{cursor:pointer;border:none;background:none;font:inherit}
+table{border-collapse:collapse;width:100%}
+img,svg{display:block}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;line-height:1.55;color:var(--text-primary);background:var(--bg-gradient);background-attachment:fixed;min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.018'/%3E%3C/svg%3E");pointer-events:none;z-index:0}
+body::after{content:'';position:fixed;top:-200px;right:-100px;width:700px;height:700px;background:radial-gradient(circle,rgba(255,200,225,0.35) 0%,transparent 65%);pointer-events:none;z-index:0}
+#app{display:flex;min-height:100vh;position:relative;z-index:1}
+.sidebar{position:fixed;top:0;left:0;width:var(--sidebar-w);height:100vh;display:flex;flex-direction:column;background:var(--bg-sidebar);backdrop-filter:var(--blur-glass);-webkit-backdrop-filter:var(--blur-glass);border-right:1px solid var(--pink-border);box-shadow:var(--shadow-sidebar);z-index:100;overflow:hidden;transition:transform var(--t-base)}
+.sidebar::after{content:'';position:absolute;top:0;right:0;width:1px;height:100%;background:linear-gradient(to bottom,transparent,var(--pink-border) 40%,var(--green-border) 70%,transparent)}
+.sidebar__logo{display:flex;align-items:center;gap:var(--gap-md);padding:20px var(--gap-lg);border-bottom:1px solid var(--border-subtle);flex-shrink:0}
+.logo-mark{width:36px;height:36px;background:linear-gradient(135deg,var(--pink-pastel),var(--green-pastel));border:1px solid var(--pink-border);border-radius:var(--r-md);display:flex;align-items:center;justify-content:center;color:var(--pink);font-size:18px;flex-shrink:0}
+.logo-title{display:block;font-family:'Inter Tight',sans-serif;font-weight:800;font-size:13px;letter-spacing:0.12em;background:var(--pink-grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.logo-sub{display:block;font-size:10px;color:var(--text-muted);letter-spacing:0.05em;margin-top:1px}
+.sidebar__nav{flex:1;padding:var(--gap-md) var(--gap-sm);overflow-y:auto;overflow-x:hidden}
+.nav-item{display:flex;align-items:center;gap:var(--gap-md);padding:10px 14px;border-radius:var(--r-md);color:var(--text-secondary);font-size:13px;font-weight:500;transition:all var(--t-fast);margin-bottom:2px;position:relative}
+.nav-item i{font-size:17px;flex-shrink:0}
+.nav-item:hover{background:rgba(201,79,128,0.07);color:var(--pink)}
+.nav-item--active{background:linear-gradient(90deg,rgba(201,79,128,0.10),rgba(43,158,107,0.06));color:var(--pink);border:1px solid var(--pink-border)}
+.nav-item--active::before{content:'';position:absolute;left:0;top:20%;height:60%;width:2px;background:linear-gradient(to bottom,var(--pink),var(--green));border-radius:0 2px 2px 0}
+.sidebar__footer{padding:var(--gap-md) var(--gap-lg);border-top:1px solid var(--border-subtle);flex-shrink:0}
+.live-indicator{display:flex;align-items:center;gap:var(--gap-sm);font-size:12px;color:var(--text-muted)}
+.pulse-dot{width:7px;height:7px;background:var(--green);border-radius:50%;box-shadow:0 0 0 0 rgba(43,158,107,0.5);animation:pulse-ring 2s ease-in-out infinite;flex-shrink:0}
+.main-wrap{margin-left:var(--sidebar-w);flex:1;min-width:0;display:flex;flex-direction:column}
+.top-header{position:sticky;top:0;z-index:90;display:flex;align-items:center;gap:var(--gap-md);height:var(--header-h);padding:0 var(--gap-xl);background:var(--bg-header);backdrop-filter:var(--blur-glass);-webkit-backdrop-filter:var(--blur-glass);border-bottom:1px solid var(--pink-border)}
+.sidebar-toggle{display:none;color:var(--text-secondary);font-size:20px;padding:6px;border-radius:var(--r-sm);transition:color var(--t-fast)}
+.sidebar-toggle:hover{color:var(--pink)}
+.header-title{flex:1;display:flex;align-items:center;gap:var(--gap-md)}
+.header-title h1{font-family:'Inter Tight',sans-serif;font-size:16px;font-weight:700;letter-spacing:0.04em;background:var(--pink-grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.demo-badge,.live-badge{font-size:10px;font-weight:600;letter-spacing:0.08em;padding:2px 8px;border-radius:var(--r-pill);text-transform:uppercase}
+.demo-badge{background:rgba(196,122,10,0.10);color:var(--status-warning);border:1px solid rgba(196,122,10,0.22)}
+.live-badge{background:rgba(30,140,90,0.11);color:var(--status-success);border:1px solid rgba(30,140,90,0.24)}
+.header-actions{display:flex;align-items:center;gap:var(--gap-md)}
+.last-updated{font-size:12px;display:flex;align-items:center;gap:5px;color:var(--text-muted)}
+.btn-icon{width:34px;height:34px;border-radius:var(--r-md);background:var(--bg-input);border:1px solid var(--border-subtle);color:var(--text-secondary);display:flex;align-items:center;justify-content:center;font-size:16px;transition:all var(--t-fast)}
+.btn-icon:hover{background:var(--pink-dim);border-color:var(--pink-border);color:var(--pink)}
+.btn-icon.spinning i{animation:spin 0.8s linear infinite}
+.main-content{flex:1;padding:var(--gap-xl);max-width:var(--content-max);width:100%}
+.dashboard-section{margin-bottom:var(--section-gap)}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap-lg);margin-bottom:var(--section-gap)}
+.section-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:var(--gap-md)}
+.section-title{font-family:'Inter Tight',sans-serif;font-size:15px;font-weight:700;letter-spacing:0.03em;color:var(--text-primary)}
+.section-subtitle{font-size:12px;color:var(--text-muted);margin-top:2px}
+.glass-card{background:var(--bg-card);border:1px solid var(--border-white);border-radius:var(--r-xl);backdrop-filter:var(--blur-glass);-webkit-backdrop-filter:var(--blur-glass);box-shadow:var(--shadow-card);transition:all var(--t-base)}
+.glass-card:hover{background:var(--bg-card-hover);border-color:var(--pink-border);box-shadow:var(--shadow-hover);transform:translateY(-1px)}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.kpi-card{padding:18px;position:relative;overflow:hidden}
+.kpi-card::after{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.9),transparent)}
+.kpi-card--risk{border-color:rgba(196,48,64,0.25)!important;background:rgba(196,48,64,0.05)!important}
+.kpi-card__header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px}
+.kpi-icon{width:34px;height:34px;border-radius:var(--r-md);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.kpi-icon--gold,.kpi-icon--pink{background:var(--pink-dim);color:var(--pink);border:1px solid var(--pink-border)}
+.kpi-icon--blue{background:var(--status-info-bg);color:var(--status-info);border:1px solid rgba(30,95,196,.18)}
+.kpi-icon--yellow{background:var(--status-warning-bg);color:var(--status-warning);border:1px solid rgba(196,122,10,.2)}
+.kpi-icon--orange{background:rgba(188,80,21,.09);color:var(--status-orange);border:1px solid rgba(188,80,21,.18)}
+.kpi-icon--purple{background:rgba(112,48,192,.09);color:var(--status-purple);border:1px solid rgba(112,48,192,.18)}
+.kpi-icon--teal{background:rgba(11,143,160,.09);color:var(--status-teal);border:1px solid rgba(11,143,160,.18)}
+.kpi-icon--red{background:var(--status-danger-bg);color:var(--status-danger);border:1px solid rgba(196,48,64,.2)}
+.kpi-icon--green{background:var(--status-success-bg);color:var(--status-success);border:1px solid rgba(30,140,90,.2)}
+.kpi-value{font-family:'Inter Tight',sans-serif;font-size:28px;font-weight:800;letter-spacing:-0.02em;line-height:1;color:var(--text-primary)}
+.kpi-label{font-size:11px;color:var(--text-muted);margin-top:5px;font-weight:500;letter-spacing:0.03em;text-transform:uppercase}
+.trend{display:flex;align-items:center;gap:3px;font-size:11px;font-weight:600}
+.trend i{font-size:13px}
+.trend--up{color:var(--status-success)}.trend--down{color:var(--status-danger)}.trend--stable{color:var(--text-muted)}
+.kpi-card__footer{margin-top:12px}
+.health-bar{height:3px;background:rgba(26,16,40,0.08);border-radius:var(--r-pill);overflow:hidden}
+.health-bar__fill{height:100%;border-radius:var(--r-pill);transition:width 1s cubic-bezier(0.4,0,0.2,1)}
+.table-card{overflow:hidden}.table-scroll{overflow-x:auto}.data-table{min-width:600px}
+.data-table thead tr{border-bottom:1px solid var(--border-subtle)}
+.data-table th{padding:14px 16px;text-align:left;font-size:11px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:var(--text-muted)}
+.data-table td{padding:16px;font-size:13px;border-bottom:1px solid rgba(26,16,40,0.05);vertical-align:middle}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tbody tr{transition:background var(--t-fast)}
+.data-table tbody tr:hover{background:rgba(201,79,128,0.04)}
+.data-table td.num{font-family:'Inter Tight',sans-serif;font-variant-numeric:tabular-nums;font-size:14px;font-weight:600}
+.brand-cell{display:flex;align-items:center;gap:10px}
+.brand-color-bar{width:3px;height:20px;border-radius:2px;flex-shrink:0}
+.brand-name{font-weight:600;font-size:13px;letter-spacing:0.04em}
+.health-ring{position:relative;display:inline-flex;align-items:center;justify-content:center}
+.health-ring svg{position:absolute;top:0;left:0;transform:rotate(-90deg)}
+.ring-label{position:relative;z-index:1;font-family:'Inter Tight',sans-serif;font-size:11px;font-weight:700}
+.ring-arc{transition:stroke-dashoffset 1s cubic-bezier(0.4,0,0.2,1)}
+.list-card{overflow:hidden}.upload-list{display:flex;flex-direction:column}
+.upload-item{display:flex;align-items:center;gap:var(--gap-md);padding:13px 16px;border-bottom:1px solid rgba(26,16,40,0.05);transition:background var(--t-fast)}
+.upload-item:last-child{border-bottom:none}.upload-item:hover{background:rgba(201,79,128,0.04)}
+.upload-icon{width:36px;height:36px;border-radius:var(--r-md);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.upload-icon--vector{background:rgba(30,95,196,.09);color:var(--status-info)}
+.upload-icon--image{background:rgba(112,48,192,.09);color:var(--status-purple)}
+.upload-icon--doc{background:var(--pink-dim);color:var(--pink)}
+.upload-icon--archive{background:rgba(196,122,10,.09);color:var(--status-warning)}
+.upload-icon--asset{background:var(--green-dim);color:var(--green)}
+.upload-icon--video{background:rgba(196,48,64,.09);color:var(--status-danger)}
+.upload-icon--file{background:rgba(26,16,40,.06);color:var(--text-muted)}
+.upload-info{flex:1;min-width:0}
+.upload-name{display:block;font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text-primary)}
+.upload-meta{display:flex;align-items:center;gap:6px;font-size:11px;margin-top:3px}
+.upload-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+.upload-date{font-size:11px}.sep{color:var(--text-muted)}
+.action-list{display:flex;flex-direction:column}
+.action-item{display:flex;gap:0;border-bottom:1px solid rgba(26,16,40,0.05);transition:background var(--t-fast);position:relative;overflow:hidden}
+.action-item:last-child{border-bottom:none}.action-item:hover{background:rgba(201,79,128,0.04)}
+.action-priority-bar{width:3px;flex-shrink:0}
+.action-content{flex:1;padding:13px 16px}
+.action-header{display:flex;align-items:center;gap:var(--gap-sm);margin-bottom:6px}
+.action-brand{font-size:11px;font-weight:600;letter-spacing:0.06em}
+.action-title{font-size:13px;color:var(--text-primary);line-height:1.4;margin-bottom:8px}
+.action-footer{display:flex;gap:var(--gap-lg);font-size:11px;color:var(--text-muted)}
+.action-footer span{display:flex;align-items:center;gap:4px}
+.detail-card{padding:var(--gap-lg)}.rename-list{display:flex;flex-direction:column;gap:18px}.rename-row{display:flex;flex-direction:column;gap:8px}
+.rename-brand{display:flex;align-items:center;gap:var(--gap-sm)}
+.rename-brand-name{font-size:13px;font-weight:600;letter-spacing:0.04em;flex:1}
+.rename-count{font-family:'Inter Tight',sans-serif;font-size:12px;font-variant-numeric:tabular-nums}
+.rename-bar-wrap{display:flex;align-items:center;gap:var(--gap-md)}
+.rename-bar{flex:1;height:6px;background:rgba(26,16,40,0.09);border-radius:var(--r-pill);overflow:hidden}
+.rename-bar__fill{height:100%;border-radius:var(--r-pill);transition:width 1s cubic-bezier(0.4,0,0.2,1)}
+.rename-pct{font-family:'Inter Tight',sans-serif;font-size:13px;font-weight:700;min-width:48px;text-align:right}
+.compliance-legend{display:flex;gap:var(--gap-lg);margin-top:var(--gap-xl);padding-top:var(--gap-md);border-top:1px solid var(--border-subtle)}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-muted)}
+.legend-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.drive-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap-md)}
+.drive-card{padding:16px}
+.drive-card--error{border-color:rgba(196,48,64,0.22)!important;background:rgba(196,48,64,0.05)!important}
+.drive-card__header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.drive-brand{display:flex;align-items:center;gap:8px}
+.drive-brand-name{font-size:13px;font-weight:600;letter-spacing:0.04em}
+.drive-status{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600}
+.drive-card__stats{display:flex;gap:var(--gap-md)}
+.drive-stat{flex:1;display:flex;flex-direction:column;gap:3px}
+.drive-stat__val{font-family:'Inter Tight',sans-serif;font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
+.drive-stat__lbl{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em}
+.drive-error-banner{margin-top:12px;padding:8px 10px;border-radius:var(--r-sm);background:var(--status-danger-bg);color:var(--status-danger);font-size:11px;font-weight:500;display:flex;align-items:center;gap:6px;border:1px solid rgba(196,48,64,0.20)}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:var(--r-pill);font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase}
+.badge--green{background:var(--status-success-bg);color:var(--status-success);border:1px solid rgba(30,140,90,.22)}
+.badge--yellow{background:var(--status-warning-bg);color:var(--status-warning);border:1px solid rgba(196,122,10,.22)}
+.badge--red{background:var(--status-danger-bg);color:var(--status-danger);border:1px solid rgba(196,48,64,.22)}
+.badge--blue{background:var(--status-info-bg);color:var(--status-info);border:1px solid rgba(30,95,196,.22)}
+.badge--orange{background:rgba(188,80,21,.09);color:var(--status-orange);border:1px solid rgba(188,80,21,.22)}
+.badge--teal{background:rgba(11,143,160,.09);color:var(--status-teal);border:1px solid rgba(11,143,160,.22)}
+.badge--muted{background:rgba(26,16,40,.06);color:var(--text-muted);border:1px solid var(--border-subtle)}
+.brand-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;display:inline-block}
+.text-success{color:var(--status-success)!important}.text-warning{color:var(--status-warning)!important}
+.text-danger{color:var(--status-danger)!important}.text-muted{color:var(--text-muted)!important}
+.text-pink{color:var(--pink)!important}
+.loading-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:var(--section-gap)}
+.loading-grid--two{grid-template-columns:1fr 1fr}.loading-grid--single{grid-template-columns:1fr}
+.skeleton{border-radius:var(--r-xl);background:linear-gradient(90deg,rgba(255,255,255,0.45) 25%,rgba(255,255,255,0.75) 50%,rgba(255,255,255,0.45) 75%);background-size:200% 100%;animation:shimmer 1.6s infinite}
+.skeleton--kpi{height:110px}.skeleton--table{height:280px}.skeleton--list{height:360px}
+.spin-icon{display:inline-block;animation:spin 1s linear infinite}
+.error-state{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--gap-md);padding:var(--gap-2xl);color:var(--text-muted);font-size:14px;text-align:center}
+.error-state i{font-size:40px;color:var(--status-danger)}
+.error-state--full{align-items:flex-start;text-align:left;max-width:720px;margin:32px auto;background:rgba(255,255,255,0.68);backdrop-filter:var(--blur-glass);border:1px solid var(--border-strong);border-radius:var(--r-xl);box-shadow:var(--shadow-card)}
+.error-title{font-size:16px;font-weight:600;color:var(--text-primary);margin:0}
+.error-message{font-size:13.5px;color:var(--text-secondary);max-width:600px;margin:0;line-height:1.55}
+.error-diagnostic{width:100%;border:1px solid var(--border-subtle);border-radius:var(--r-md);overflow:hidden;font-size:12px}
+.error-diag-row{display:grid;grid-template-columns:110px 1fr;border-bottom:1px solid var(--border-subtle)}
+.error-diag-row:last-child{border-bottom:none}
+.error-diag-label{padding:8px 12px;font-weight:600;font-size:11px;color:var(--text-primary);background:rgba(26,16,40,0.04);border-right:1px solid var(--border-subtle);white-space:nowrap;display:flex;align-items:center}
+.error-diag-val{padding:8px 12px;font-family:'SF Mono','Fira Code','Consolas',monospace;font-size:11px;color:var(--text-secondary);word-break:break-all;background:transparent}
+.error-diag-val--bad{color:var(--status-danger);font-weight:700}
+.error-diag-val--pre{white-space:pre-wrap;max-height:90px;overflow-y:auto;display:block}
+.error-steps{background:rgba(255,255,255,0.55);border:1px solid var(--border-subtle);border-radius:var(--r-md);padding:14px 18px;text-align:left;font-size:13px;color:var(--text-secondary);max-width:480px;width:100%}
+.error-steps p{margin-bottom:8px;color:var(--text-primary)}
+.error-steps ol{list-style:decimal;padding-left:18px;display:flex;flex-direction:column;gap:6px}
+.btn-retry{display:inline-flex;align-items:center;gap:6px;padding:8px 20px;background:var(--pink-dim);border:1px solid var(--pink-border);border-radius:var(--r-md);color:var(--pink);font-size:13px;font-weight:600;cursor:pointer;transition:all var(--t-fast)}
+.btn-retry:hover{background:rgba(201,79,128,0.15)}
+::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(201,79,128,0.20);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:rgba(201,79,128,0.35)}
+::selection{background:var(--pink-dim);color:var(--pink-dark)}
+@media(max-width:1100px){.kpi-grid{grid-template-columns:repeat(4,1fr)}.drive-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:900px){:root{--sidebar-w:0px}.sidebar{transform:translateX(-100%);width:240px}.sidebar--open{transform:translateX(0);box-shadow:0 0 0 100vw rgba(80,20,50,0.25)}.main-wrap{margin-left:0}.sidebar-toggle{display:flex}.kpi-grid{grid-template-columns:repeat(2,1fr)}.two-col{grid-template-columns:1fr}.drive-grid{grid-template-columns:1fr}.header-title h1{font-size:14px}.main-content{padding:var(--gap-lg)}}
+@media(max-width:640px){.kpi-grid{grid-template-columns:repeat(2,1fr);gap:10px}.kpi-value{font-size:22px}.top-header{padding:0 var(--gap-md)}.main-content{padding:var(--gap-md)}.compliance-legend{flex-direction:column;gap:var(--gap-sm)}}
+@media(max-width:400px){.kpi-grid{grid-template-columns:1fr 1fr}}
+/* Animations */
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+@keyframes pulse-ring{0%{box-shadow:0 0 0 0 rgba(43,158,107,0.50)}60%{box-shadow:0 0 0 6px rgba(43,158,107,0)}100%{box-shadow:0 0 0 0 rgba(43,158,107,0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fade-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slide-up{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes card-appear{from{opacity:0;transform:translateY(12px) scale(0.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes gold-shimmer{0%{background-position:-200% center}100%{background-position:200% center}}
+.dashboard-section{animation:fade-in 0.45s ease both}
+.dashboard-section:nth-child(1){animation-delay:0.05s}.dashboard-section:nth-child(2){animation-delay:0.12s}.dashboard-section:nth-child(3){animation-delay:0.18s}.dashboard-section:nth-child(4){animation-delay:0.24s}
+.two-col{animation:fade-in 0.45s ease both}.two-col:nth-of-type(1){animation-delay:0.18s}.two-col:nth-of-type(2){animation-delay:0.26s}
+.kpi-card:nth-child(1){animation:card-appear 0.4s ease 0.05s both}.kpi-card:nth-child(2){animation:card-appear 0.4s ease 0.10s both}.kpi-card:nth-child(3){animation:card-appear 0.4s ease 0.15s both}.kpi-card:nth-child(4){animation:card-appear 0.4s ease 0.20s both}.kpi-card:nth-child(5){animation:card-appear 0.4s ease 0.25s both}.kpi-card:nth-child(6){animation:card-appear 0.4s ease 0.30s both}.kpi-card:nth-child(7){animation:card-appear 0.4s ease 0.35s both}.kpi-card:nth-child(8){animation:card-appear 0.4s ease 0.40s both}
+.upload-item{animation:slide-up 0.35s ease both}.upload-item:nth-child(1){animation-delay:0.04s}.upload-item:nth-child(2){animation-delay:0.08s}.upload-item:nth-child(3){animation-delay:0.12s}.upload-item:nth-child(4){animation-delay:0.16s}.upload-item:nth-child(5){animation-delay:0.20s}.upload-item:nth-child(6){animation-delay:0.24s}.upload-item:nth-child(7){animation-delay:0.28s}.upload-item:nth-child(8){animation-delay:0.32s}
+.action-item{animation:slide-up 0.35s ease both}.action-item:nth-child(1){animation-delay:0.04s}.action-item:nth-child(2){animation-delay:0.09s}.action-item:nth-child(3){animation-delay:0.14s}.action-item:nth-child(4){animation-delay:0.19s}.action-item:nth-child(5){animation-delay:0.24s}.action-item:nth-child(6){animation-delay:0.29s}.action-item:nth-child(7){animation-delay:0.34s}
+.drive-card{animation:card-appear 0.4s ease both}.drive-card:nth-child(1){animation-delay:0.08s}.drive-card:nth-child(2){animation-delay:0.16s}.drive-card:nth-child(3){animation-delay:0.24s}.drive-card:nth-child(4){animation-delay:0.32s}
+.brand-row{animation:fade-in 0.3s ease both}.brand-row:nth-child(1){animation-delay:0.05s}.brand-row:nth-child(2){animation-delay:0.10s}.brand-row:nth-child(3){animation-delay:0.15s}.brand-row:nth-child(4){animation-delay:0.20s}
+.rename-row{animation:fade-in 0.3s ease both}.rename-row:nth-child(1){animation-delay:0.06s}.rename-row:nth-child(2){animation-delay:0.12s}.rename-row:nth-child(3){animation-delay:0.18s}.rename-row:nth-child(4){animation-delay:0.24s}
+.logo-title{background-size:200% auto;animation:gold-shimmer 4s linear infinite}
+[data-rive-target="counter"]{transition:none}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:0.01ms!important;animation-iteration-count:1!important;transition-duration:0.01ms!important}}
+  </style>
 </head>
 <body>
 
-  <!-- Boot status — visible BEFORE any JS runs. Removed only after successful render.
-       Uses only inline styles and Arial font so it renders with zero external dependencies. -->
+  <!-- Boot status: visible before ANY JS runs. Only removed after successful render. -->
   <div id="boot-status" style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;padding:40px;font-family:Arial;color:#111;background:#fff;display:flex;align-items:center;justify-content:center;">
     <div id="boot-status-inner" style="text-align:center;max-width:520px;width:100%">
       <div style="font-size:32px;margin-bottom:12px">⏳</div>
@@ -37,46 +278,684 @@
     </div>
   </div>
 
-  <!-- App root — JS builds the entire DOM inside here -->
   <div id="app" role="application" aria-label="Digital Brand Command Center"></div>
 
-  <!-- Inline global error handler — must run before any external scripts load -->
   <script>
     function _bLog(msg) {
       var el = document.getElementById('boot-log');
       if (el) el.innerHTML += '<div>' + msg + '</div>';
     }
-    _bLog('Scripts loading...');
-
+    _bLog('Initializing...');
     window.onerror = function(msg, src, line) {
       var inner = document.getElementById('boot-status-inner');
       if (inner) {
         inner.innerHTML =
           '<div style="font-size:24px;margin-bottom:12px">&#9888;</div>' +
-          '<div style="font-size:15px;font-weight:bold;color:#c00;margin-bottom:12px">JavaScript error — cannot start</div>' +
+          '<div style="font-size:15px;font-weight:bold;color:#c00;margin-bottom:12px">JavaScript error</div>' +
           '<div style="font-size:12px;background:#fee;border:1px solid #fcc;border-radius:6px;padding:12px;text-align:left;font-family:monospace;word-break:break-all">' +
-          (msg || '') + '<br><span style="color:#888">' + ((src || '').split('/').pop()) + ':' + (line || 0) + '</span></div>' +
-          '<button onclick="location.reload()" style="margin-top:16px;padding:10px 24px;background:#ffe;border:1px solid #cca;border-radius:6px;cursor:pointer;font-weight:bold;font-size:13px">Reload page</button>';
+          (msg||'') + '<br><span style="color:#888">' + ((src||'').split('/').pop()) + ':' + (line||0) + '</span></div>' +
+          '<button onclick="location.reload()" style="margin-top:16px;padding:10px 24px;background:#ffe;border:1px solid #cca;border-radius:6px;cursor:pointer;font-weight:bold;font-size:13px">Reload</button>';
         document.getElementById('boot-status').style.display = 'flex';
       }
       return false;
     };
   </script>
 
-  <!-- Config must load before everything else -->
-  <script src="/config.js" onerror="_bLog('ERROR: /config.js failed to load (404?)')"></script>
-  <script>if(typeof CONFIG!=='undefined'){_bLog('config.js OK');}else{_bLog('WARN: CONFIG not defined after config.js');}</script>
+  <!-- ═══════════════════════════════════════════════════════════════
+       CONFIG  (inlined — no external file dependency)
+       ═══════════════════════════════════════════════════════════════ -->
+  <script>
+const CONFIG = {
+  SHEET_ID: '16fQ4OBH9f7bZPtaf-n21IsQOm8fnLYPpyYSh_xp-iTg',
+  TAB_NAMES: {
+    EXECUTIVE:      'Executive Dashboard',
+    DRIVE_REGISTRY: 'Drive Live Registry',
+    REGISTRY:       'Brand Registry',
+    ASSETS:         'Digital Asset Vault',
+    MISSING:        'Missing Asset Checklist',
+    SOCIAL:         'Social Posting Pipeline',
+  },
+  BRANDS: [
+    { id: 'DETEKCAM',    label: 'DETEKCAM',    color: '#1E5FC4', icon: 'camera'        },
+    { id: 'DETEKLAB',    label: 'DETEKLAB',    color: '#7030C0', icon: 'flask'          },
+    { id: 'I-BG',        label: 'I-BG',        color: '#1E8C5A', icon: 'buildings'     },
+    { id: 'SIPSAFE',     label: 'SIPSAFE',     color: '#C43040', icon: 'shield-check'  },
+    { id: 'GERMONIZER',  label: 'GERMONIZER',  color: '#E5A020', icon: 'leaf'          },
+    { id: 'CORPORATE',   label: 'CORPORATE',   color: '#4A5568', icon: 'briefcase'     },
+    { id: 'SOCIAL MEDIA',label: 'SOCIAL MEDIA',color: '#E91E8C', icon: 'share-network' },
+    { id: 'VENDOR',      label: 'VENDOR',      color: '#00897B', icon: 'package'       },
+    { id: 'ARCHIVE',     label: 'ARCHIVE',     color: '#78909C', icon: 'archive'       },
+    { id: 'INBOX',       label: 'INBOX',       color: '#F4511E', icon: 'tray'          },
+  ],
+  REFRESH_INTERVAL: 300000,
+  TITLE: 'Digital Brand Command Center',
+  ORG_NAME: 'I-BG Creative',
+};
+  </script>
 
-  <!-- Data layer -->
-  <script src="/js/data.js" onerror="_bLog('ERROR: /js/data.js failed to load (404?)')"></script>
-  <script>if(typeof fetchTab==='function'){_bLog('data.js OK');}else{_bLog('WARN: data.js functions missing');}</script>
+  <!-- ═══════════════════════════════════════════════════════════════
+       DATA LAYER  (inlined)
+       ═══════════════════════════════════════════════════════════════ -->
+  <script>
+const COL = {
+  FILE_ID:0,NAME:1,TYPE:2,MIME:3,BRAND:4,
+  PARENT:5,PATH:6,URL:7,CREATED:8,MODIFIED:9,
+  OWNER:10,SIZE:11,NAMING:12,STATUS:13,SYNCED:14,
+};
 
-  <!-- Component renderers -->
-  <script src="/js/components.js" onerror="_bLog('ERROR: /js/components.js failed to load (404?)')"></script>
-  <script>if(typeof Sidebar==='function'){_bLog('components.js OK');}else{_bLog('WARN: components.js functions missing');}</script>
+function parseCSV(text) {
+  const rows = [];
+  let row = [], field = '', inQuote = false, i = 0;
+  while (i < text.length) {
+    const ch = text[i];
+    if (ch === '"') {
+      if (inQuote && text[i+1] === '"') { field += '"'; i += 2; continue; }
+      inQuote = !inQuote;
+    } else if (ch === ',' && !inQuote) {
+      row.push(field.trim()); field = '';
+    } else if ((ch === '\n' || ch === '\r') && !inQuote) {
+      if (ch === '\r' && text[i+1] === '\n') i++;
+      row.push(field.trim());
+      if (row.some(c => c !== '')) rows.push(row);
+      row = []; field = '';
+    } else { field += ch; }
+    i++;
+  }
+  if (field.length || row.length) { row.push(field.trim()); if (row.some(c => c !== '')) rows.push(row); }
+  return rows;
+}
 
-  <!-- App orchestration -->
-  <script src="/js/app.js" onerror="_bLog('ERROR: /js/app.js failed to load (404?)')"></script>
+async function fetchTab(tabName) {
+  const url = 'https://docs.google.com/spreadsheets/d/' + CONFIG.SHEET_ID +
+    '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(tabName);
+  console.log('[DBCC] Fetching:', url);
+  let res;
+  try {
+    res = await fetch(url, { cache: 'no-store' });
+  } catch (netErr) {
+    const err = new Error('Network error — cannot reach Google Sheets. (' + netErr.message + ')');
+    err.url = url; err.httpStatus = 0; throw err;
+  }
+  console.log('[DBCC] HTTP status:', res.status);
+  let text;
+  try { text = await res.text(); } catch (readErr) {
+    const err = new Error('Failed to read response: ' + readErr.message);
+    err.url = url; err.httpStatus = res.status; throw err;
+  }
+  const preview = text.substring(0, 300);
+  const responseSize = text.length;
+  console.log('[DBCC] Response size:', responseSize, 'bytes');
+  if (!res.ok) {
+    const err = new Error('HTTP ' + res.status + ' — failed to fetch tab "' + tabName + '"');
+    err.url = url; err.httpStatus = res.status; err.responseSize = responseSize; err.preview = preview; throw err;
+  }
+  if (text.trim().startsWith('<')) {
+    const err = new Error(
+      'Tab "' + tabName + '" returned HTML instead of CSV. ' +
+      'The sheet is not publicly accessible, or the tab does not exist yet. ' +
+      'Open your Google Sheet → Share → Anyone with the link → Viewer, ' +
+      'then run DBCC → Sync Drive Files to create the Drive Live Registry tab.'
+    );
+    err.url = url; err.httpStatus = res.status; err.responseSize = responseSize; err.preview = preview; throw err;
+  }
+  let rows;
+  try { rows = parseCSV(text); } catch (parseErr) {
+    const err = new Error('CSV parse error for tab "' + tabName + '": ' + parseErr.message);
+    err.url = url; err.httpStatus = res.status; err.responseSize = responseSize; err.preview = preview; throw err;
+  }
+  console.log('[DBCC] Parsed', rows.length, 'rows');
+  return rows;
+}
+
+function relativeTime(dateStr) {
+  if (!dateStr) return 'Never';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  const mins = Math.floor((Date.now() - d.getTime()) / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return mins + ' min ago';
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return hrs + ' hr ago';
+  const days = Math.floor(hrs / 24);
+  return days + ' day' + (days !== 1 ? 's' : '') + ' ago';
+}
+
+function parseKPIs(rows) {
+  const data = rows.slice(1);
+  const files   = data.filter(r => (r[COL.TYPE]||'') !== 'Folder');
+  const folders = data.filter(r => (r[COL.TYPE]||'') === 'Folder');
+  const brands = new Set(data.map(r => (r[COL.BRAND]||'').trim()).filter(b => b && b !== 'UNASSIGNED'));
+  const renameNeeded = files.filter(r => (r[COL.NAMING]||'') === 'Rename Needed').length;
+  const autoLogged   = files.filter(r => (r[COL.STATUS]||'') === 'Synced').length;
+  const pending      = files.filter(r => !(r[COL.PATH]||'').trim()).length;
+  const okFiles      = files.filter(r => (r[COL.NAMING]||'') === 'OK').length;
+  const health       = files.length > 0 ? Math.round((okFiles / files.length) * 100) : 0;
+  const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const recentlyMod  = files.filter(r => {
+    const d = new Date(r[COL.MODIFIED]||''); return !isNaN(d.getTime()) && d.getTime() >= sevenDaysAgo;
+  }).length;
+  return {
+    total_brands:      { value: brands.size,    change: 0, trend: 'stable' },
+    total_assets:      { value: files.length,   change: 0, trend: 'stable' },
+    total_folders:     { value: folders.length, change: 0, trend: 'stable' },
+    rename_needed:     { value: renameNeeded,   change: 0, trend: renameNeeded > 0 ? 'up' : 'stable' },
+    recently_modified: { value: recentlyMod,    change: 0, trend: 'stable' },
+    auto_logged:       { value: autoLogged,     change: 0, trend: 'stable' },
+    pending_review:    { value: pending,        change: 0, trend: 'stable' },
+    overall_health:    { value: health,         change: 0, trend: health >= 80 ? 'up' : 'down', unit: '%' },
+  };
+}
+
+function parseBrandSummary(rows) {
+  const data = rows.slice(1); const map = {};
+  data.forEach(r => {
+    const brand = (r[COL.BRAND]||'UNASSIGNED').trim();
+    const type  = (r[COL.TYPE] ||'').trim();
+    const naming= (r[COL.NAMING]||'').trim();
+    if (brand === 'UNASSIGNED') return;
+    if (!map[brand]) map[brand] = { id: brand, label: brand, totalFiles: 0, reviewed: 0, renameNeeded: 0 };
+    if (type !== 'Folder') {
+      map[brand].totalFiles++;
+      if (naming === 'OK') map[brand].reviewed++;
+      if (naming === 'Rename Needed') map[brand].renameNeeded++;
+    }
+  });
+  return Object.values(map).filter(b => b.totalFiles > 0).map(b => {
+    const cfg = CONFIG.BRANDS.find(x => x.id === b.id) || {};
+    b.color   = cfg.color || '#888888';
+    b.pending = b.renameNeeded;
+    b.health  = b.totalFiles > 0 ? Math.round((b.reviewed / b.totalFiles) * 100) : 0;
+    return b;
+  }).sort((a, b) => b.totalFiles - a.totalFiles);
+}
+
+function parseRecentUploads(rows) {
+  const MIME_MAP = { pdf:'doc',ai:'vector',svg:'vector',eps:'vector',psd:'image',png:'image',jpg:'image',jpeg:'image',webp:'image',mp4:'video',mov:'video',avi:'video',zip:'archive',rar:'archive' };
+  return rows.slice(1).filter(r => (r[COL.TYPE]||'') !== 'Folder' && r[COL.NAME])
+    .sort((a,b) => new Date(b[COL.MODIFIED]||0).getTime() - new Date(a[COL.MODIFIED]||0).getTime())
+    .slice(0,10).map(r => {
+      const filename = r[COL.NAME]||'Unknown';
+      const ext = filename.split('.').pop().toLowerCase();
+      const dateRaw = (r[COL.MODIFIED]||r[COL.CREATED]||'').substring(0,10);
+      return { filename, brand:(r[COL.BRAND]||'UNASSIGNED').toUpperCase().trim(), date:dateRaw||'—', size:r[COL.SIZE]||'—', status:'auto-logged', type:MIME_MAP[ext]||'file' };
+    });
+}
+
+function parseActions(rows) {
+  const brandCounts = {};
+  rows.slice(1).forEach(r => {
+    if ((r[COL.NAMING]||'') !== 'Rename Needed') return;
+    if ((r[COL.TYPE]  ||'') === 'Folder') return;
+    const brand = (r[COL.BRAND]||'UNASSIGNED').trim();
+    brandCounts[brand] = (brandCounts[brand]||0) + 1;
+  });
+  return Object.entries(brandCounts).sort((a,b) => b[1]-a[1]).map(([brand,count],i) => ({
+    id:i, priority:count > 50 ? 'high' : count > 20 ? 'medium' : 'low',
+    title:'Rename ' + count + ' non-compliant file' + (count!==1?'s':'') + ' in ' + brand,
+    brand, due:'—', owner:'—',
+  }));
+}
+
+function parseRenameCompliance(rows) {
+  const map = {};
+  rows.slice(1).forEach(r => {
+    const brand = (r[COL.BRAND]||'UNASSIGNED').trim();
+    const type  = (r[COL.TYPE] ||'').trim();
+    const naming= (r[COL.NAMING]||'').trim();
+    if (brand === 'UNASSIGNED' || type === 'Folder') return;
+    if (!map[brand]) map[brand] = { brand, total:0, renamed:0 };
+    map[brand].total++;
+    if (naming === 'OK') map[brand].renamed++;
+  });
+  return Object.values(map).filter(b => b.total > 0).map(b => ({
+    ...b, compliance: parseFloat(((b.renamed / b.total) * 100).toFixed(1)),
+  })).sort((a,b) => b.total - a.total);
+}
+
+function parseDriveSync(rows) {
+  const map = {};
+  rows.slice(1).forEach(r => {
+    const brand = (r[COL.BRAND] ||'').trim();
+    const type  = (r[COL.TYPE]  ||'').trim();
+    const synced= (r[COL.SYNCED]||'').trim();
+    if (!brand || brand === 'UNASSIGNED' || type === 'Folder') return;
+    if (!map[brand]) map[brand] = { brand, lastSyncRaw:'', filesSynced:0, errors:0 };
+    map[brand].filesSynced++;
+    if (synced && synced > map[brand].lastSyncRaw) map[brand].lastSyncRaw = synced;
+  });
+  return Object.values(map).sort((a,b) => b.filesSynced - a.filesSynced).map(b => ({
+    brand:b.brand, status:'synced', lastSync:relativeTime(b.lastSyncRaw), filesSynced:b.filesSynced, errors:0,
+  }));
+}
+
+async function fetchLiveData() {
+  const rows = await fetchTab(CONFIG.TAB_NAMES.DRIVE_REGISTRY);
+  if (!rows || rows.length < 2) {
+    const err = new Error('Drive Live Registry tab has ' + (rows?rows.length:0) + ' row(s) — needs data. Run DBCC → Sync Drive Files first.');
+    err.rows = rows ? rows.length : 0; throw err;
+  }
+  const brands = parseBrandSummary(rows);
+  return {
+    kpis: parseKPIs(rows),
+    brands: brands.length ? brands : [],
+    recentUploads: parseRecentUploads(rows),
+    actions: parseActions(rows),
+    renameCompliance: parseRenameCompliance(rows),
+    driveSync: parseDriveSync(rows),
+    meta: { lastUpdated: new Date().toISOString(), source: 'live' },
+  };
+}
+
+async function loadDashboardData() { return fetchLiveData(); }
+  </script>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       COMPONENTS  (inlined)
+       ═══════════════════════════════════════════════════════════════ -->
+  <script>
+const ICON = { svg: name => '<i class="ph ph-' + name + '" aria-hidden="true"></i>' };
+
+const KPI_META = {
+  total_brands:      { label:'Total Brands',       icon:'stack',           unit:'',  accent:'pink'   },
+  total_assets:      { label:'Total Assets',       icon:'folder-open',     unit:'',  accent:'blue'   },
+  total_folders:     { label:'Total Folders',      icon:'folders',         unit:'',  accent:'teal'   },
+  rename_needed:     { label:'Rename Needed',      icon:'pencil-simple',   unit:'',  accent:'orange' },
+  recently_modified: { label:'Recently Modified',  icon:'clock-countdown', unit:'',  accent:'purple' },
+  auto_logged:       { label:'Auto Logged',        icon:'lightning',       unit:'',  accent:'blue'   },
+  pending_review:    { label:'Pending Review',     icon:'clock',           unit:'',  accent:'yellow' },
+  overall_health:    { label:'Overall Health',     icon:'heartbeat',       unit:'%', accent:'green'  },
+};
+
+function formatNumber(n) { if (n >= 1000) return (n/1000).toFixed(1).replace(/\.0$/,'')+'k'; return n.toString(); }
+
+function trendIcon(trend, change) {
+  if (trend==='up')   return '<span class="trend trend--up">'   + ICON.svg('trend-up')   + ' +' + Math.abs(change) + '</span>';
+  if (trend==='down') return '<span class="trend trend--down">' + ICON.svg('trend-down') + ' −' + Math.abs(change) + '</span>';
+  return '<span class="trend trend--stable">' + ICON.svg('minus') + ' —</span>';
+}
+
+function statusBadge(status) {
+  const map = { new:{cls:'blue',label:'New'},'auto-logged':{cls:'teal',label:'Auto'},review:{cls:'yellow',label:'Review'},approved:{cls:'green',label:'Approved'},synced:{cls:'green',label:'Synced'},syncing:{cls:'blue',label:'Syncing'},error:{cls:'red',label:'Error'},pending:{cls:'yellow',label:'Pending'},warning:{cls:'yellow',label:'Warning'},critical:{cls:'red',label:'Critical'},high:{cls:'orange',label:'High'},medium:{cls:'yellow',label:'Medium'},low:{cls:'teal',label:'Low'} };
+  const s = map[status] || { cls:'muted', label:status };
+  return '<span class="badge badge--' + s.cls + '">' + s.label + '</span>';
+}
+
+function healthColor(pct) { if (pct>=85) return 'var(--green)'; if (pct>=65) return 'var(--status-warning)'; return 'var(--status-danger)'; }
+
+function fileTypeIcon(type) {
+  const map = { vector:'bezier-curve', image:'image', doc:'file-text', archive:'archive', asset:'palette', video:'video' };
+  return ICON.svg(map[type]||'file');
+}
+
+function brandDot(brandId) {
+  const brand = CONFIG.BRANDS.find(b => b.id===brandId);
+  return '<span class="brand-dot" style="background:' + (brand?brand.color:'#888') + '"></span>';
+}
+
+function healthRing(pct, size) {
+  size = size||44; const r=(size/2)-4; const circ=2*Math.PI*r; const dash=(pct/100)*circ; const color=healthColor(pct);
+  return '<div class="health-ring" data-rive-target="status-ring" data-value="' + pct + '" style="width:' + size + 'px;height:' + size + 'px">' +
+    '<svg width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' ' + size + '">' +
+    '<circle cx="' + (size/2) + '" cy="' + (size/2) + '" r="' + r + '" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="3"/>' +
+    '<circle cx="' + (size/2) + '" cy="' + (size/2) + '" r="' + r + '" fill="none" stroke="' + color + '" stroke-width="3" stroke-dasharray="' + dash + ' ' + circ + '" stroke-dashoffset="' + (circ*0.25) + '" stroke-linecap="round" class="ring-arc"/></svg>' +
+    '<span class="ring-label" style="color:' + color + '">' + pct + '%</span></div>';
+}
+
+function SectionHeader(opts) {
+  return '<div class="section-header"><div><h2 class="section-title">' + opts.title + '</h2>' +
+    (opts.subtitle ? '<p class="section-subtitle">' + opts.subtitle + '</p>' : '') + '</div>' +
+    (opts.action ? '<div class="section-action">' + opts.action + '</div>' : '') + '</div>';
+}
+
+function KPICard(key, data) {
+  const meta = KPI_META[key]||{label:key,icon:'chart-bar',unit:'',accent:'gold'};
+  const val  = data.unit==='%' ? data.value+'%' : formatNumber(data.value);
+  const isHealth = key==='overall_health';
+  return '<article class="kpi-card glass-card" role="region" aria-label="' + meta.label + '">' +
+    '<div class="kpi-card__header"><div class="kpi-icon kpi-icon--' + meta.accent + '">' + ICON.svg(meta.icon) + '</div>' + trendIcon(data.trend,data.change) + '</div>' +
+    '<div class="kpi-card__body"><div class="kpi-value" data-rive-target="counter" data-value="' + data.value + '" data-unit="' + (data.unit||'') + '">' + val + '</div><div class="kpi-label">' + meta.label + '</div></div>' +
+    (isHealth ? '<div class="kpi-card__footer"><div class="health-bar"><div class="health-bar__fill" style="width:' + data.value + '%;background:' + healthColor(data.value) + '"></div></div></div>' : '') +
+    '</article>';
+}
+
+function KPIGrid(kpis) {
+  const order = ['total_brands','total_assets','total_folders','rename_needed','recently_modified','auto_logged','pending_review','overall_health'];
+  return '<section id="kpi-section" class="dashboard-section">' +
+    SectionHeader({title:'Executive KPIs',subtitle:'Live performance overview across all brands'}) +
+    '<div class="kpi-grid">' + order.map(k => KPICard(k, kpis[k]||{value:0,change:0,trend:'stable'})).join('') + '</div></section>';
+}
+
+function BrandRow(brand) {
+  const b = CONFIG.BRANDS.find(b => b.id===brand.id)||{};
+  return '<tr class="brand-row" data-brand="' + brand.id + '">' +
+    '<td><div class="brand-cell"><span class="brand-color-bar" style="background:' + (b.color||brand.color||'#888') + '"></span><span class="brand-name">' + brand.label + '</span></div></td>' +
+    '<td class="num">' + brand.totalFiles.toLocaleString() + '</td>' +
+    '<td class="num text-success">' + brand.reviewed.toLocaleString() + '</td>' +
+    '<td class="num"><span class="' + (brand.pending>40?'text-warning':'text-muted') + '">' + brand.pending + '</span></td>' +
+    '<td class="num"><span class="' + (brand.renameNeeded>20?'text-danger':'text-muted') + '">' + brand.renameNeeded + '</span></td>' +
+    '<td>' + healthRing(brand.health,44) + '</td></tr>';
+}
+
+function BrandAssetSummary(brands) {
+  const body = (brands&&brands.length) ? brands.map(BrandRow).join('') :
+    '<tr><td colspan="6" style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px">No brand data yet — run DBCC → Sync Drive Files in your Google Sheet</td></tr>';
+  return '<section id="brand-summary" class="dashboard-section">' +
+    SectionHeader({title:'Brand Asset Summary',subtitle:'File counts and health scores per brand'}) +
+    '<div class="glass-card table-card"><div class="table-scroll"><table class="data-table"><thead><tr><th>Brand</th><th>Total Files</th><th>Reviewed</th><th>Pending</th><th>Rename Needed</th><th>Health</th></tr></thead><tbody>' + body + '</tbody></table></div></div></section>';
+}
+
+function UploadItem(upload) {
+  const brand = CONFIG.BRANDS.find(b => b.id===upload.brand)||{};
+  return '<li class="upload-item"><div class="upload-icon upload-icon--' + upload.type + '">' + fileTypeIcon(upload.type) + '</div>' +
+    '<div class="upload-info"><span class="upload-name" title="' + upload.filename + '">' + upload.filename + '</span>' +
+    '<span class="upload-meta">' + brandDot(upload.brand) + '<span style="color:' + (brand.color||'#888') + '">' + upload.brand + '</span><span class="sep">·</span><span class="text-muted">' + upload.size + '</span></span></div>' +
+    '<div class="upload-right">' + statusBadge(upload.status) + '<span class="upload-date text-muted">' + upload.date + '</span></div></li>';
+}
+
+function RecentUploads(uploads) {
+  return '<section id="recent-uploads" class="dashboard-section dashboard-section--half">' +
+    SectionHeader({title:'Recent Uploads',subtitle:uploads.length + ' files'}) +
+    '<div class="glass-card list-card"><ul class="upload-list">' + uploads.map(UploadItem).join('') + '</ul></div></section>';
+}
+
+function ActionItem(action) {
+  const brand = CONFIG.BRANDS.find(b => b.id===action.brand)||{};
+  const brandColor = brand.color||'#888';
+  const prioColor = action.priority==='critical'?'var(--status-danger)':action.priority==='high'?'var(--status-orange)':action.priority==='medium'?'var(--status-warning)':'var(--status-info)';
+  return '<li class="action-item action-item--' + action.priority + '"><div class="action-priority-bar" style="background:' + prioColor + '"></div>' +
+    '<div class="action-content"><div class="action-header">' + statusBadge(action.priority) + '<span class="action-brand" style="color:' + brandColor + '">' + action.brand + '</span></div>' +
+    '<p class="action-title">' + action.title + '</p>' +
+    '<div class="action-footer"><span class="text-muted">' + ICON.svg('user') + ' ' + action.owner + '</span><span class="text-muted">' + ICON.svg('calendar-blank') + ' ' + action.due + '</span></div>' +
+    '</div></li>';
+}
+
+function PriorityActions(actions) {
+  return '<section id="priority-actions" class="dashboard-section dashboard-section--half">' +
+    SectionHeader({title:'Priority Actions',subtitle:actions.filter(a=>a.priority==='critical'||a.priority==='high').length+' high priority'}) +
+    '<div class="glass-card list-card"><ul class="action-list">' + actions.map(ActionItem).join('') + '</ul></div></section>';
+}
+
+function RenameBar(item) {
+  const brand = CONFIG.BRANDS.find(b => b.id===item.brand)||{};
+  const color = brand.color||'#888';
+  const pct = item.compliance;
+  const barColor = pct>=95?'var(--status-success)':pct>=85?'var(--status-warning)':'var(--status-danger)';
+  return '<div class="rename-row"><div class="rename-brand"><span class="brand-dot" style="background:' + color + '"></span><span class="rename-brand-name">' + item.brand + '</span><span class="rename-count text-muted">' + item.renamed.toLocaleString() + ' / ' + item.total.toLocaleString() + '</span></div>' +
+    '<div class="rename-bar-wrap"><div class="rename-bar"><div class="rename-bar__fill" style="width:' + pct + '%;background:' + barColor + '" data-rive-target="progress-bar"></div></div><span class="rename-pct" style="color:' + barColor + '">' + pct.toFixed(1) + '%</span></div></div>';
+}
+
+function RenameCompliance(data) {
+  if (!data||data.length===0) return '<section id="rename-compliance" class="dashboard-section dashboard-section--half">' + SectionHeader({title:'File Rename Compliance',subtitle:'No data — run DBCC → Sync Drive Files'}) + '<div class="glass-card detail-card" style="padding:32px;text-align:center;color:var(--text-muted);font-size:13px">No rename data yet. Run the Drive sync first.</div></section>';
+  const avg = (data.reduce((s,d)=>s+d.compliance,0)/data.length).toFixed(1);
+  return '<section id="rename-compliance" class="dashboard-section dashboard-section--half">' +
+    SectionHeader({title:'File Rename Compliance',subtitle:'Avg ' + avg + '% across all brands'}) +
+    '<div class="glass-card detail-card"><div class="rename-list">' + data.map(RenameBar).join('') + '</div>' +
+    '<div class="compliance-legend"><span class="legend-item"><span class="legend-dot" style="background:var(--status-success)"></span>≥ 95% Good</span><span class="legend-item"><span class="legend-dot" style="background:var(--status-warning)"></span>85–94% Fair</span><span class="legend-item"><span class="legend-dot" style="background:var(--status-danger)"></span>&lt; 85% Needs Work</span></div></div></section>';
+}
+
+function DriveSyncCard(item) {
+  const brand = CONFIG.BRANDS.find(b => b.id===item.brand)||{};
+  const color = brand.color||'#888';
+  const statusIcon  = {synced:'check-circle',syncing:'arrows-clockwise',error:'warning-circle',unknown:'question'};
+  const statusColor = {synced:'var(--status-success)',syncing:'var(--status-info)',error:'var(--status-danger)',unknown:'var(--text-muted)'};
+  const isSyncing = item.status==='syncing';
+  return '<div class="drive-card glass-card' + (item.status==='error'?' drive-card--error':'') + '">' +
+    '<div class="drive-card__header"><div class="drive-brand"><span class="brand-dot" style="background:' + color + '"></span><span class="drive-brand-name">' + item.brand + '</span></div>' +
+    '<span class="drive-status" style="color:' + (statusColor[item.status]||'#888') + '"><span class="' + (isSyncing?'spin-icon':'') + '">' + ICON.svg(statusIcon[item.status]||'question') + '</span>' + item.status.charAt(0).toUpperCase()+item.status.slice(1) + '</span></div>' +
+    '<div class="drive-card__stats"><div class="drive-stat"><span class="drive-stat__val">' + item.filesSynced.toLocaleString() + '</span><span class="drive-stat__lbl">Files synced</span></div>' +
+    '<div class="drive-stat"><span class="drive-stat__val ' + (item.errors>0?'text-danger':'text-success') + '">' + item.errors + '</span><span class="drive-stat__lbl">Errors</span></div>' +
+    '<div class="drive-stat"><span class="drive-stat__val text-muted">' + item.lastSync + '</span><span class="drive-stat__lbl">Last sync</span></div></div>' +
+    (item.errors>0 ? '<div class="drive-error-banner">' + ICON.svg('warning') + ' ' + item.errors + ' sync error' + (item.errors>1?'s':'') + ' — review required</div>' : '') + '</div>';
+}
+
+function DriveSyncStatus(data) {
+  const errors = data.reduce((s,d)=>s+d.errors,0);
+  return '<section id="drive-sync" class="dashboard-section dashboard-section--half">' +
+    SectionHeader({title:'Drive Sync Status',subtitle:errors>0?errors+' total errors':'All drives healthy'}) +
+    '<div class="drive-grid">' + data.map(DriveSyncCard).join('') + '</div></section>';
+}
+  </script>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       APP  (inlined)
+       ═══════════════════════════════════════════════════════════════ -->
+  <script>
+window.onunhandledrejection = function(ev) {
+  var r = ev.reason;
+  _showInBootStatus(r instanceof Error ? r : new Error(String(r||'Unhandled rejection')));
+};
+
+function hideBootStatus() {
+  var el = document.getElementById('boot-status');
+  if (el) el.remove();
+}
+
+function _showInBootStatus(err) {
+  var bs = document.getElementById('boot-status');
+  if (!bs) return;
+  bs.style.display = 'flex';
+  var inner = document.getElementById('boot-status-inner');
+  if (inner) inner.innerHTML = buildErrorCard(err);
+}
+
+function buildDiagPanel(url) {
+  return '<div style="padding:40px;display:flex;flex-direction:column;gap:14px;max-width:700px;margin:0 auto;font-family:sans-serif">' +
+    '<p style="margin:0;font-size:14px;font-weight:600;color:#1A1028">Connecting to Google Sheet…</p>' +
+    '<div style="border:1px solid rgba(26,16,40,.12);border-radius:10px;overflow:hidden">' +
+    '<table style="width:100%;border-collapse:collapse;font-size:12px">' +
+    _drow('Fetch URL','<span style="font-size:11px;font-family:monospace;word-break:break-all;color:rgba(26,16,40,.68)">' + _esc(url) + '</span>') +
+    _drow('HTTP Status','<em style="color:rgba(26,16,40,.4)">requesting…</em>') +
+    _drow('Response','<em style="color:rgba(26,16,40,.4)">waiting…</em>') +
+    _drow('Rows','<em style="color:rgba(26,16,40,.4)">waiting…</em>') +
+    '</table></div></div>';
+}
+
+function buildErrorCard(err) {
+  var msg     = (err&&err.message)||'Unknown error';
+  var url     = (err&&err.url)||'';
+  var status  = (err&&err.httpStatus!==undefined) ? String(err.httpStatus) : '—';
+  var preview = (err&&err.preview)||'';
+  var size    = (err&&err.responseSize!==undefined) ? (err.responseSize+' bytes') : '—';
+  var rows    = (err&&err.rows!==undefined) ? String(err.rows) : '—';
+  var sheetId = (typeof CONFIG!=='undefined'&&CONFIG&&CONFIG.SHEET_ID)||'';
+  var isHttp  = /^\d+$/.test(status) && parseInt(status,10)>=400;
+  return '<div style="padding:40px;display:flex;flex-direction:column;gap:18px;max-width:700px;margin:0 auto;font-family:sans-serif">' +
+    '<div style="display:flex;align-items:center;gap:10px"><span style="font-size:28px;color:#C43040">&#9888;</span>' +
+    '<h3 style="margin:0;font-size:16px;font-weight:600;color:#1A1028">Cannot Load Dashboard Data</h3></div>' +
+    '<p style="margin:0;font-size:13px;color:rgba(26,16,40,.68);line-height:1.55">' + _esc(msg) + '</p>' +
+    '<div style="border:1px solid rgba(26,16,40,.12);border-radius:10px;overflow:hidden"><table style="width:100%;border-collapse:collapse;font-size:12px">' +
+    _drow('Fetch URL', url ? '<span style="font-size:11px;font-family:monospace;word-break:break-all">' + _esc(url) + '</span>' : '—') +
+    _drow('HTTP Status','<strong style="color:' + (isHttp?'#C43040':'#1A1028') + '">' + _esc(status) + '</strong>') +
+    _drow('Response Size', _esc(size)) +
+    _drow('Rows Loaded', _esc(rows)) +
+    (preview ? _drow('Response','<pre style="margin:0;font-size:10px;max-height:80px;overflow:auto;white-space:pre-wrap;color:rgba(26,16,40,.7)">' + _esc(preview.substring(0,300)) + '</pre>') : '') +
+    '</table></div>' +
+    '<div style="background:rgba(255,255,255,.55);border:1px solid rgba(26,16,40,.09);border-radius:10px;padding:14px 18px;font-size:13px">' +
+    '<p style="margin:0 0 8px;font-weight:600;color:#1A1028">To fix:</p>' +
+    '<ol style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;color:rgba(26,16,40,.68)">' +
+    '<li>Open your <a href="https://docs.google.com/spreadsheets/d/' + sheetId + '" target="_blank" style="color:#C94F80;font-weight:600">Google Sheet</a></li>' +
+    '<li><strong>Share → Anyone with the link → Viewer</strong></li>' +
+    '<li>In Apps Script: run <strong>DBCC → Sync Drive Files</strong></li>' +
+    '</ol></div>' +
+    '<button onclick="window.DBCC&&window.DBCC.refresh?window.DBCC.refresh():location.reload()" style="align-self:flex-start;padding:10px 22px;background:#FFD0E6;border:1px solid #F4AECB;border-radius:8px;cursor:pointer;font-weight:600;font-size:13px;color:#9B2E5E">↻ Retry</button></div>';
+}
+
+function _drow(label, val) {
+  return '<tr style="border-top:1px solid rgba(26,16,40,.09)">' +
+    '<td style="padding:8px 12px;font-weight:600;font-size:11px;color:#1A1028;white-space:nowrap;vertical-align:top;background:rgba(26,16,40,.03);border-right:1px solid rgba(26,16,40,.09);width:100px">' + label + '</td>' +
+    '<td style="padding:8px 12px;color:rgba(26,16,40,.68);vertical-align:top">' + val + '</td></tr>';
+}
+
+function _esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function _registryUrl() {
+  try { return 'https://docs.google.com/spreadsheets/d/' + CONFIG.SHEET_ID + '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(CONFIG.TAB_NAMES.DRIVE_REGISTRY); }
+  catch(e) { return 'Could not build URL: ' + e.message; }
+}
+
+(function() {
+  'use strict';
+  var refreshTimer = null, currentData = null, isLoading = false;
+
+  function renderDashboard(data) {
+    var root = document.getElementById('dashboard-content');
+    if (!root) return;
+    var html = '';
+    try { html += KPIGrid(data.kpis); }                 catch(e) { html += _sectionErr('KPI Grid',e); }
+    try { html += BrandAssetSummary(data.brands); }     catch(e) { html += _sectionErr('Brand Summary',e); }
+    try {
+      html += '<div class="two-col">';
+      try { html += RecentUploads(data.recentUploads); } catch(e) { html += _sectionErr('Recent Uploads',e); }
+      try { html += PriorityActions(data.actions); }     catch(e) { html += _sectionErr('Actions',e); }
+      html += '</div>';
+    } catch(e) { html += _sectionErr('Two-col 1',e); }
+    try {
+      html += '<div class="two-col">';
+      try { html += RenameCompliance(data.renameCompliance); } catch(e) { html += _sectionErr('Rename',e); }
+      try { html += DriveSyncStatus(data.driveSync); }         catch(e) { html += _sectionErr('Drive Sync',e); }
+      html += '</div>';
+    } catch(e) { html += _sectionErr('Two-col 2',e); }
+    root.innerHTML = html;
+    try { updateHeader(data.meta); }   catch(e) {}
+    try { animateCounters(); }         catch(e) {}
+    try { animateProgressBars(); }     catch(e) {}
+    try { bindNavHighlight(); }        catch(e) {}
+  }
+
+  function _sectionErr(name, e) {
+    console.error('[DBCC] Section error (' + name + '):', e);
+    return '<div style="padding:16px;margin:8px 0;background:rgba(196,48,64,.07);border:1px solid rgba(196,48,64,.2);border-radius:8px;font-size:12px;font-family:sans-serif"><strong style="color:#C43040">' + name + ' failed:</strong> ' + _esc(e.message) + '</div>';
+  }
+
+  function updateHeader(meta) {
+    var headerEl = document.getElementById('top-header');
+    if (!headerEl) return;
+    var updated = meta&&meta.lastUpdated ? new Date(meta.lastUpdated).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '—';
+    var isDemo = !meta||meta.source==='demo';
+    var updatedEl = headerEl.querySelector('.last-updated');
+    if (updatedEl) updatedEl.innerHTML = '<i class="ph ph-clock"></i> Updated ' + updated;
+    var titleDiv = headerEl.querySelector('.header-title');
+    if (titleDiv) {
+      [].forEach.call(titleDiv.querySelectorAll('.demo-badge,.live-badge'), function(b){b.remove();});
+      var badge = document.createElement('span');
+      badge.className = isDemo ? 'demo-badge' : 'live-badge';
+      badge.textContent = isDemo ? 'Demo Data' : 'Live Data';
+      titleDiv.appendChild(badge);
+    }
+    var btn = document.getElementById('refreshBtn');
+    if (btn) btn.classList.remove('spinning');
+  }
+
+  function animateCounters() {
+    document.querySelectorAll('[data-rive-target="counter"]').forEach(function(el) {
+      var target = parseFloat(el.dataset.value)||0;
+      var isFloat = (el.dataset.value||'').indexOf('.')>-1;
+      var duration = 800, start = performance.now();
+      function tick(now) {
+        var p = Math.min((now-start)/duration,1), ease = 1-Math.pow(1-p,3), current = target*ease;
+        var unit = el.dataset.unit||'';
+        if (unit==='%') { el.textContent = Math.round(current)+'%'; }
+        else if (target>=1000) { var k=current/1000; el.textContent=k>=1?k.toFixed(1).replace(/\.0$/,'')+'k':Math.round(current).toString(); }
+        else { el.textContent = isFloat ? current.toFixed(1) : Math.round(current).toString(); }
+        if (p<1) requestAnimationFrame(tick);
+      }
+      el.textContent = '0'; requestAnimationFrame(tick);
+    });
+  }
+
+  function animateProgressBars() {
+    document.querySelectorAll('[data-rive-target="progress-bar"]').forEach(function(el) {
+      var w = el.style.width; el.style.width='0%';
+      requestAnimationFrame(function(){ el.style.transition='width 1s cubic-bezier(0.4,0,0.2,1)'; el.style.width=w; });
+    });
+    document.querySelectorAll('.ring-arc').forEach(function(arc) {
+      var len = arc.getTotalLength ? arc.getTotalLength() : 150;
+      arc.style.strokeDashoffset = len.toString();
+      requestAnimationFrame(function(){ arc.style.transition='stroke-dashoffset 1s cubic-bezier(0.4,0,0.2,1)'; arc.style.strokeDashoffset=''; });
+    });
+  }
+
+  function bindNavHighlight() {
+    var sections = document.querySelectorAll('.dashboard-section');
+    var navItems = document.querySelectorAll('.nav-item');
+    var observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) { var id=entry.target.id; navItems.forEach(function(n){ n.classList.toggle('nav-item--active',n.dataset.section===id); }); }
+      });
+    }, {threshold:0.3, rootMargin:'-60px 0px -60% 0px'});
+    sections.forEach(function(s){ observer.observe(s); });
+  }
+
+  async function refresh() {
+    if (isLoading) return;
+    isLoading = true;
+    var root = document.getElementById('dashboard-content');
+    var btn  = document.getElementById('refreshBtn');
+    if (btn) btn.classList.add('spinning');
+    var fetchUrl = _registryUrl();
+    if (root) root.innerHTML = buildDiagPanel(fetchUrl);
+    try {
+      var data = await loadDashboardData();
+      currentData = data;
+      renderDashboard(data);
+      hideBootStatus();
+    } catch(err) {
+      console.error('[DBCC] Fetch failed:', err.message);
+      _showInBootStatus(err);
+    } finally {
+      isLoading = false;
+      if (btn) btn.classList.remove('spinning');
+    }
+  }
+
+  function toggleSidebar() {
+    var s=document.getElementById('sidebar'), a=document.getElementById('app');
+    if (s) s.classList.toggle('sidebar--open');
+    if (a) a.classList.toggle('sidebar-open');
+  }
+
+  function startAutoRefresh() {
+    if (refreshTimer) clearInterval(refreshTimer);
+    if (typeof CONFIG!=='undefined' && CONFIG.REFRESH_INTERVAL>0)
+      refreshTimer = setInterval(refresh, CONFIG.REFRESH_INTERVAL);
+  }
+
+  async function init() {
+    var app = document.getElementById('app');
+    if (!app) { _showInBootStatus(new Error('#app element missing')); return; }
+    try {
+      app.innerHTML =
+        '<aside class="sidebar" id="sidebar" role="navigation" aria-label="Dashboard navigation">' +
+        '<div class="sidebar__logo"><div class="logo-mark"><i class="ph ph-crown-simple"></i></div>' +
+        '<div class="logo-text"><span class="logo-title">DBCC</span><span class="logo-sub">Brand Command</span></div></div>' +
+        '<nav class="sidebar__nav">' +
+        [['kpi-section','chart-bar','Overview'],['brand-summary','stack','Brands'],['recent-uploads','upload-simple','Uploads'],['priority-actions','list-checks','Actions'],['rename-compliance','pencil-simple','Rename'],['drive-sync','hard-drives','Drive Sync']].map(function(item,i) {
+          return '<a href="#' + item[0] + '" class="nav-item' + (i===0?' nav-item--active':'') + '" data-section="' + item[0] + '"><i class="ph ph-' + item[1] + '"></i><span>' + item[2] + '</span></a>';
+        }).join('') +
+        '</nav><div class="sidebar__footer"><div class="live-indicator"><span class="pulse-dot"></span><span class="live-label">Live</span></div></div></aside>' +
+        '<div class="main-wrap"><header class="top-header" id="top-header">' +
+        '<button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar"><i class="ph ph-list"></i></button>' +
+        '<div class="header-title"><h1>' + CONFIG.TITLE + '</h1></div>' +
+        '<div class="header-actions"><span class="last-updated text-muted"><i class="ph ph-clock"></i> Loading…</span>' +
+        '<button class="btn-icon spinning" id="refreshBtn" aria-label="Refresh"><i class="ph ph-arrows-clockwise"></i></button>' +
+        '</div></header><main class="main-content" id="dashboard-content" role="main"></main></div>';
+    } catch(shellErr) {
+      _showInBootStatus(shellErr); return;
+    }
+    var rfBtn = document.getElementById('refreshBtn');
+    var sbBtn = document.getElementById('sidebarToggle');
+    if (rfBtn) rfBtn.addEventListener('click', refresh);
+    if (sbBtn) sbBtn.addEventListener('click', toggleSidebar);
+    try { await refresh(); } catch(err) { _showInBootStatus(err); }
+    startAutoRefresh();
+  }
+
+  window.DBCC = { refresh:refresh, toggleSidebar:toggleSidebar, getData:function(){ return currentData; } };
+
+  if (document.readyState==='loading') { document.addEventListener('DOMContentLoaded', init); }
+  else { init(); }
+})();
+  </script>
 
 </body>
 </html>
