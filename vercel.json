@@ -1,5 +1,10 @@
 {
-  "version": 2,
+  "version": 2
+}cd ~/digital-brand-command-center
+nano vercel.json
+{
+  "version": 2
+}  "version": 2,
   "name": "digital-brand-command-center",
   "builds": [
     { "src": "index.html", "use": "@vercel/static" }
