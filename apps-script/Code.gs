@@ -83,6 +83,7 @@ var MIME_MAP = {
 function onOpen() {
   SpreadsheetApp.getActiveSpreadsheet().addMenu('DBCC', [
     { name: 'Sync Drive Files',        functionName: 'syncDriveFiles'       },
+    { name: 'Auto Suggest Names',      functionName: 'autoSuggestNames'     },
     { name: 'Rename Approved Files',   functionName: 'renameApprovedFiles'  },
     null,
     { name: 'Setup Hourly Trigger',    functionName: 'setupHourlyTrigger'   },
@@ -518,6 +519,168 @@ function renameApprovedFiles() {
   ss.toast(summary.replace(/\n/g, '  '), 'DBCC Rename Complete', 10);
   SpreadsheetApp.getUi().alert(summary);
   Logger.log('renameApprovedFiles done — renamed=' + renamed + ' failed=' + failed + ' skipped=' + skipped);
+}
+
+// ─── Auto Suggest Names ───────────────────────────────────────────────────────
+//
+// For every row where Type = File, Naming Check = Rename Needed,
+// and Suggested New Name is blank — generates a compliant filename:
+//
+//   BRAND_CATEGORY_DESCRIPTION_YYYYMMDD
+//
+// Writes only to Suggested New Name. No files are touched in Drive.
+
+var FOLDER_CATEGORIES = [
+  ['brand guide',   'BRAND_GUIDE'],
+  ['brand',         'BRAND'],
+  ['logo',          'LOGO'],
+  ['icon',          'ICON'],
+  ['social media',  'SOCIAL_MEDIA'],
+  ['social',        'SOCIAL'],
+  ['marketing',     'MARKETING'],
+  ['product',       'PRODUCT'],
+  ['video',         'VIDEO'],
+  ['photo',         'PHOTO'],
+  ['image',         'IMAGE'],
+  ['document',      'DOCUMENT'],
+  ['banner',        'BANNER'],
+  ['template',      'TEMPLATE'],
+  ['creative',      'CREATIVE'],
+  ['web',           'WEB'],
+  ['print',         'PRINT'],
+  ['presentation',  'PRESENTATION'],
+  ['brochure',      'BROCHURE'],
+  ['asset',         'ASSET'],
+  ['archive',       'ARCHIVE'],
+  ['inbox',         'INBOX'],
+  ['vendor',        'VENDOR'],
+];
+
+var DESC_STOP_WORDS = [
+  'the','a','an','of','in','on','at','to','for','and','or','by','with','from',
+  'is','was','are','be','been','img','image','photo','file','new','final','copy',
+  'version','draft','v1','v2','v3','v4','rev','edit','edited','export','exported',
+  'untitled','document','logo','icon','asset','original','temp','test',
+  '0','1','2','3','01','02','03',
+];
+
+function autoSuggestNames() {
+  var ss    = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(DC.REGISTRY_TAB);
+
+  if (!sheet) {
+    SpreadsheetApp.getUi().alert('Drive Live Registry tab not found.\nRun DBCC → Sync Drive Files first.');
+    return;
+  }
+
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    SpreadsheetApp.getUi().alert('No data found. Run DBCC → Sync Drive Files first.');
+    return;
+  }
+
+  var data    = sheet.getRange(2, 1, lastRow - 1, REGISTRY_HEADERS.length).getValues();
+  var today   = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMdd');
+  var updates = [];
+  var suggested = 0, skipped = 0;
+
+  ss.toast('Generating name suggestions...', 'DBCC Auto Suggest', -1);
+
+  for (var i = 0; i < data.length; i++) {
+    var row      = data[i];
+    var sheetRow = i + 2;
+
+    var fileName = (row[1]  || '').toString().trim();
+    var type     = (row[2]  || '').toString().trim();
+    var mimeType = (row[3]  || '').toString().trim();
+    var brand    = (row[4]  || '').toString().trim();
+    var parent   = (row[5]  || '').toString().trim();
+    var fullPath = (row[6]  || '').toString().trim();
+    var naming   = (row[12] || '').toString().trim();
+    var existing = (row[15] || '').toString().trim();
+
+    if (type === 'Folder')          { skipped++; continue; }
+    if (naming !== 'Rename Needed') { skipped++; continue; }
+    if (existing !== '')            { skipped++; continue; }
+
+    var name = _buildSuggestedName(brand, parent, fullPath, fileName, mimeType, today);
+    updates.push({ row: sheetRow, name: name });
+    suggested++;
+  }
+
+  updates.forEach(function(u) {
+    sheet.getRange(u.row, RENAME_COL.SUGGESTED + 1).setValue(u.name);
+  });
+  SpreadsheetApp.flush();
+
+  var summary = 'Auto-suggest complete.\n\n✓ Suggested: ' + suggested + '\n— Skipped: ' + skipped;
+  ss.toast(summary.replace(/\n/g, '  '), 'DBCC Auto Suggest', 8);
+  SpreadsheetApp.getUi().alert(summary);
+  Logger.log('autoSuggestNames: suggested=' + suggested + ' skipped=' + skipped);
+}
+
+function _buildSuggestedName(brand, parent, fullPath, fileName, mimeType, today) {
+  var brandPart    = _normalizeBrand(brand);
+  var categoryPart = _deriveCategory(parent, fullPath, mimeType, fileName);
+  var descPart     = _deriveDescription(fileName, brand, categoryPart);
+
+  var parts = [brandPart, categoryPart];
+  if (descPart) parts.push(descPart);
+  parts.push(today);
+
+  return parts.join('_');
+}
+
+function _normalizeBrand(brand) {
+  return (brand || 'UNASSIGNED').toUpperCase().replace(/[\s\-]/g, '');
+}
+
+function _deriveCategory(parent, fullPath, mimeType, fileName) {
+  var search = (parent + ' ' + fullPath).toLowerCase();
+
+  for (var i = 0; i < FOLDER_CATEGORIES.length; i++) {
+    if (search.indexOf(FOLDER_CATEGORIES[i][0]) > -1) return FOLDER_CATEGORIES[i][1];
+  }
+
+  // MIME type fallback
+  if (mimeType.indexOf('image/svg')               > -1) return 'VECTOR';
+  if (mimeType === 'application/postscript')            return 'VECTOR';
+  if (mimeType.indexOf('image/vnd.adobe.photoshop') > -1) return 'DESIGN';
+  if (mimeType.indexOf('image/')                   > -1) return 'IMAGE';
+  if (mimeType.indexOf('video/')                   > -1) return 'VIDEO';
+  if (mimeType.indexOf('audio/')                   > -1) return 'AUDIO';
+  if (mimeType === 'application/pdf')                   return 'DOCUMENT';
+  if (mimeType === 'application/zip')                   return 'ARCHIVE';
+  if (mimeType.indexOf('google-apps.presentation') > -1) return 'PRESENTATION';
+  if (mimeType.indexOf('google-apps.spreadsheet')  > -1) return 'SPREADSHEET';
+  if (mimeType.indexOf('google-apps.document')     > -1) return 'DOCUMENT';
+
+  // Filename keyword fallback
+  var fn = fileName.toLowerCase();
+  for (var j = 0; j < FOLDER_CATEGORIES.length; j++) {
+    if (fn.indexOf(FOLDER_CATEGORIES[j][0]) > -1) return FOLDER_CATEGORIES[j][1];
+  }
+
+  return 'ASSET';
+}
+
+function _deriveDescription(fileName, brand, category) {
+  var base   = fileName.replace(/\.[^.]+$/, '');          // strip extension
+  var parts  = base.split(/[\s_\-\.]+/);                  // split on delimiters
+  var bNorm  = (brand || '').toUpperCase().replace(/[\s\-]/g, '');
+  var catLow = (category || '').toLowerCase().replace(/_/g, ' ');
+
+  var clean = parts.filter(function(p) {
+    if (!p || p.length < 2) return false;
+    var u = p.toUpperCase().replace(/[\s\-]/g, '');
+    if (u === bNorm) return false;                        // skip brand token
+    if (/^\d+$/.test(p)) return false;                   // skip pure numbers
+    if (/^\d{4}/.test(p) && p.length >= 8) return false; // skip date-like strings
+    if (DESC_STOP_WORDS.indexOf(p.toLowerCase()) > -1) return false;
+    return true;
+  });
+
+  return clean.slice(0, 3).join('_').toUpperCase() || '';
 }
 
 // ─── Hourly Trigger Management ────────────────────────────────────────────────
