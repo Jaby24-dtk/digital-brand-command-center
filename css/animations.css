@@ -1,0 +1,156 @@
+/* ================================================================
+   DIGITAL BRAND COMMAND CENTER — Animations
+   ================================================================ */
+
+/* ─── Keyframes ─────────────────────────────────────────────────── */
+
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes pulse-ring {
+  0%   { box-shadow: 0 0 0 0 rgba(43, 158, 107, 0.50); }
+  60%  { box-shadow: 0 0 0 6px rgba(43, 158, 107, 0);   }
+  100% { box-shadow: 0 0 0 0 rgba(43, 158, 107, 0);     }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+@keyframes card-appear {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes gold-shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+
+@keyframes ring-draw {
+  from { stroke-dashoffset: 283; }
+  to   { stroke-dashoffset: 0;   }
+}
+
+/* ─── Page entrance ─────────────────────────────────────────────── */
+
+.dashboard-section {
+  animation: fade-in 0.45s ease both;
+}
+
+.dashboard-section:nth-child(1) { animation-delay: 0.05s; }
+.dashboard-section:nth-child(2) { animation-delay: 0.12s; }
+.dashboard-section:nth-child(3) { animation-delay: 0.18s; }
+.dashboard-section:nth-child(4) { animation-delay: 0.24s; }
+
+/* Two-col sections */
+.two-col { animation: fade-in 0.45s ease both; }
+.two-col:nth-of-type(1) { animation-delay: 0.18s; }
+.two-col:nth-of-type(2) { animation-delay: 0.26s; }
+
+/* KPI cards stagger */
+.kpi-card:nth-child(1)  { animation: card-appear 0.4s ease 0.05s both; }
+.kpi-card:nth-child(2)  { animation: card-appear 0.4s ease 0.10s both; }
+.kpi-card:nth-child(3)  { animation: card-appear 0.4s ease 0.15s both; }
+.kpi-card:nth-child(4)  { animation: card-appear 0.4s ease 0.20s both; }
+.kpi-card:nth-child(5)  { animation: card-appear 0.4s ease 0.25s both; }
+.kpi-card:nth-child(6)  { animation: card-appear 0.4s ease 0.30s both; }
+.kpi-card:nth-child(7)  { animation: card-appear 0.4s ease 0.35s both; }
+.kpi-card:nth-child(8)  { animation: card-appear 0.4s ease 0.40s both; }
+.kpi-card:nth-child(9)  { animation: card-appear 0.4s ease 0.45s both; }
+.kpi-card:nth-child(10) { animation: card-appear 0.4s ease 0.50s both; }
+
+/* Upload / action list items stagger */
+.upload-item { animation: slide-up 0.35s ease both; }
+.upload-item:nth-child(1) { animation-delay: 0.04s; }
+.upload-item:nth-child(2) { animation-delay: 0.08s; }
+.upload-item:nth-child(3) { animation-delay: 0.12s; }
+.upload-item:nth-child(4) { animation-delay: 0.16s; }
+.upload-item:nth-child(5) { animation-delay: 0.20s; }
+.upload-item:nth-child(6) { animation-delay: 0.24s; }
+.upload-item:nth-child(7) { animation-delay: 0.28s; }
+.upload-item:nth-child(8) { animation-delay: 0.32s; }
+
+.action-item { animation: slide-up 0.35s ease both; }
+.action-item:nth-child(1) { animation-delay: 0.04s; }
+.action-item:nth-child(2) { animation-delay: 0.09s; }
+.action-item:nth-child(3) { animation-delay: 0.14s; }
+.action-item:nth-child(4) { animation-delay: 0.19s; }
+.action-item:nth-child(5) { animation-delay: 0.24s; }
+.action-item:nth-child(6) { animation-delay: 0.29s; }
+.action-item:nth-child(7) { animation-delay: 0.34s; }
+
+/* Drive sync cards */
+.drive-card { animation: card-appear 0.4s ease both; }
+.drive-card:nth-child(1) { animation-delay: 0.08s; }
+.drive-card:nth-child(2) { animation-delay: 0.16s; }
+.drive-card:nth-child(3) { animation-delay: 0.24s; }
+.drive-card:nth-child(4) { animation-delay: 0.32s; }
+
+/* Brand table rows */
+.brand-row { animation: fade-in 0.3s ease both; }
+.brand-row:nth-child(1) { animation-delay: 0.05s; }
+.brand-row:nth-child(2) { animation-delay: 0.10s; }
+.brand-row:nth-child(3) { animation-delay: 0.15s; }
+.brand-row:nth-child(4) { animation-delay: 0.20s; }
+
+/* ─── Rename rows ────────────────────────────────────────────────── */
+.rename-row { animation: fade-in 0.3s ease both; }
+.rename-row:nth-child(1) { animation-delay: 0.06s; }
+.rename-row:nth-child(2) { animation-delay: 0.12s; }
+.rename-row:nth-child(3) { animation-delay: 0.18s; }
+.rename-row:nth-child(4) { animation-delay: 0.24s; }
+
+/* ─── Gold text shimmer (applied to logo) ────────────────────────── */
+.logo-title {
+  background-size: 200% auto;
+  animation: gold-shimmer 4s linear infinite;
+}
+
+/* ─── Rive placeholder targets ───────────────────────────────────── */
+/* These elements will host Rive animations when the .riv files are added.
+   The CSS keeps them visible so the fallback content shows correctly. */
+
+[data-rive-target="counter"] {
+  /* Rive counter animation will replace text content.
+     Add: const anim = new rive.Rive({ canvas, src: 'counter.riv', ... }) */
+  transition: none;
+}
+
+[data-rive-target="status-ring"] {
+  /* Rive ring animation will replace SVG.
+     Add: new rive.Rive({ canvas, src: 'ring.riv', inputs: { progress: value } }) */
+}
+
+[data-rive-target="loading"] {
+  /* Rive loading animation will replace skeleton shimmer.
+     Add: new rive.Rive({ canvas, src: 'loading.riv', autoplay: true }) */
+}
+
+[data-rive-target="progress-bar"] {
+  /* Rive progress bar will replace CSS bar.
+     Add: new rive.Rive({ canvas, src: 'progress.riv', inputs: { fill: value } }) */
+}
+
+/* ─── Reduced motion ──────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

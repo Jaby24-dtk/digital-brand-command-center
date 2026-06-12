@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Digital Brand Command Center — Live brand asset dashboard" />
+  <meta name="theme-color" content="#06060E" />
+  <title>Digital Brand Command Center</title>
+
+  <!-- Preconnect -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <!-- Phosphor Icons (SVG icon system via CSS) -->
+  <script src="https://unpkg.com/@phosphor-icons/web@2.1.1" defer></script>
+
+  <!-- Inter font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Inter+Tight:wght@600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="css/animations.css" />
+
+  <!-- Favicon inline SVG -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23C9A96E'/><text x='50%25' y='50%25' dominant-baseline='central' text-anchor='middle' font-size='18' font-family='serif'>◈</text></svg>" />
+</head>
+<body>
+
+  <!-- App root — JS builds the entire DOM inside here -->
+  <div id="app" role="application" aria-label="Digital Brand Command Center"></div>
+
+  <!--
+    ════════════════════════════════════════════════════════════════
+    TO CONNECT YOUR GOOGLE SHEETS DATA:
+      1. Open config.js
+      2. Set USE_DEMO_DATA to false
+      3. Paste your published CSV URL(s) into SHEETS or your
+         Apps Script Web App URL into DATA_SOURCE_URL
+    ════════════════════════════════════════════════════════════════
+
+    TO ADD RIVE ANIMATIONS:
+      1. Import the Rive runtime: <script src="https://unpkg.com/@rive-app/canvas@latest/rive.js"></script>
+      2. Target elements with data-rive-target attributes (see animations.css for notes)
+      3. Replace counter/ring/loading DOM nodes with <canvas> elements
+         and init via: new rive.Rive({ canvas, src: 'your.riv', autoplay: true })
+    ════════════════════════════════════════════════════════════════
+  -->
+
+  <!-- Config must load before everything else -->
+  <script src="config.js"></script>
+
+  <!-- Data layer -->
+  <script src="js/data.js"></script>
+
+  <!-- Component renderers -->
+  <script src="js/components.js"></script>
+
+  <!-- App orchestration -->
+  <script src="js/app.js"></script>
+
+</body>
+</html>
