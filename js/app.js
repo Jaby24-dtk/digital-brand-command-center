@@ -5,9 +5,23 @@
 // Unhandled promise rejection safety net
 window.onunhandledrejection = function (ev) {
   var r = ev.reason;
-  var el = document.getElementById('dashboard-content') || document.getElementById('app');
-  if (el) el.innerHTML = buildErrorCard(r instanceof Error ? r : new Error(String(r || 'Unhandled rejection')));
+  _showInBootStatus(r instanceof Error ? r : new Error(String(r || 'Unhandled rejection')));
 };
+
+// ─── Boot-status helpers (no external deps) ──────────────────────────────────
+
+function hideBootStatus() {
+  var el = document.getElementById('boot-status');
+  if (el) el.remove();
+}
+
+function _showInBootStatus(err) {
+  var bs = document.getElementById('boot-status');
+  if (!bs) return;
+  bs.style.display = 'flex';
+  var inner = document.getElementById('boot-status-inner');
+  if (inner) inner.innerHTML = buildErrorCard(err);
+}
 
 // ─── Self-contained diagnostic helpers (no external deps) ────────────────────
 
@@ -238,6 +252,7 @@ function _registryUrl() {
       var data = await loadDashboardData();
       currentData = data;
       renderDashboard(data);
+      hideBootStatus(); // only removed after a successful render
     } catch (err) {
       console.error('[DBCC] ──────────────────────────────────────');
       console.error('[DBCC] Fetch failed');
@@ -248,7 +263,7 @@ function _registryUrl() {
       console.error('[DBCC] rows:         ', err.rows       !== undefined ? err.rows : 'N/A');
       console.error('[DBCC] preview:      ', err.preview    || 'N/A');
       console.error('[DBCC] ──────────────────────────────────────');
-      if (root) root.innerHTML = buildErrorCard(err);
+      _showInBootStatus(err); // show error inside boot-status overlay
     } finally {
       isLoading = false;
       if (btn) btn.classList.remove('spinning');
@@ -276,14 +291,10 @@ function _registryUrl() {
   // ─── Init ──────────────────────────────────────────────────────────────────
 
   async function init() {
-    // Remove pre-JS loading screen immediately
-    var preJs = document.getElementById('pre-js');
-    if (preJs) preJs.remove();
-
     var app = document.getElementById('app');
     if (!app) {
       console.error('[DBCC] #app not found');
-      document.body.innerHTML = buildErrorCard(new Error('#app element missing from HTML'));
+      _showInBootStatus(new Error('#app element missing from HTML'));
       return;
     }
 
@@ -302,7 +313,7 @@ function _registryUrl() {
         '</div>';
     } catch (shellErr) {
       console.error('[DBCC] Shell render error:', shellErr);
-      app.innerHTML = buildErrorCard(shellErr);
+      _showInBootStatus(shellErr);
       return;
     }
 
@@ -323,8 +334,7 @@ function _registryUrl() {
       await refresh();
     } catch (err) {
       console.error('[DBCC] refresh() threw unexpectedly:', err);
-      var root = document.getElementById('dashboard-content') || app;
-      root.innerHTML = buildErrorCard(err);
+      _showInBootStatus(err);
     }
 
     startAutoRefresh();

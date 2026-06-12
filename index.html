@@ -26,63 +26,42 @@
 </head>
 <body>
 
+  <!-- Boot status — visible BEFORE any JS runs. Removed only after successful render.
+       Uses only inline styles and Arial font so it renders with zero external dependencies. -->
+  <div id="boot-status" style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;padding:40px;font-family:Arial;color:#111;background:#fff;display:flex;align-items:center;justify-content:center;">
+    <div id="boot-status-inner" style="text-align:center;max-width:520px;width:100%">
+      <div style="font-size:32px;margin-bottom:12px">⏳</div>
+      <div style="font-size:16px;font-weight:bold;margin-bottom:8px">DBCC is loading...</div>
+      <div style="font-size:13px;color:#555;margin-bottom:16px">Digital Brand Command Center</div>
+      <div id="boot-log" style="font-size:11px;color:#888;font-family:monospace;text-align:left;line-height:1.6"></div>
+    </div>
+  </div>
+
   <!-- App root — JS builds the entire DOM inside here -->
   <div id="app" role="application" aria-label="Digital Brand Command Center"></div>
 
-  <!--
-    ════════════════════════════════════════════════════════════════
-    TO CONNECT YOUR GOOGLE SHEETS DATA:
-      1. Open config.js
-      2. Set USE_DEMO_DATA to false
-      3. Paste your published CSV URL(s) into SHEETS or your
-         Apps Script Web App URL into DATA_SOURCE_URL
-    ════════════════════════════════════════════════════════════════
-
-    TO ADD RIVE ANIMATIONS:
-      1. Import the Rive runtime: <script src="https://unpkg.com/@rive-app/canvas@latest/rive.js"></script>
-      2. Target elements with data-rive-target attributes (see animations.css for notes)
-      3. Replace counter/ring/loading DOM nodes with <canvas> elements
-         and init via: new rive.Rive({ canvas, src: 'your.riv', autoplay: true })
-    ════════════════════════════════════════════════════════════════
-  -->
-
-  <!-- Inline global error handler — registered before any external script loads -->
+  <!-- Inline global error handler — must run before any external scripts load -->
   <script>
-    window.onerror = function(msg, src, line, col) {
-      var el = document.getElementById('pre-js') || document.getElementById('app');
-      if (el) el.innerHTML =
-        '<div style="padding:32px;font-family:sans-serif;max-width:680px;margin:40px auto">' +
-        '<h3 style="color:#C43040;font-size:15px;margin:0 0 12px">&#9888; JavaScript error — dashboard cannot start</h3>' +
-        '<pre style="background:rgba(196,48,64,0.07);border:1px solid rgba(196,48,64,0.2);padding:12px;' +
-        'border-radius:8px;font-size:11px;white-space:pre-wrap;word-break:break-all;margin:0 0 12px">' +
-        (msg||'') + '\n' + (src||'') + ':' + (line||0) + ':' + (col||0) + '</pre>' +
-        '<button onclick="location.reload()" style="padding:8px 20px;background:#FFD0E6;border:1px solid #F4AECB;' +
-        'border-radius:8px;cursor:pointer;font-weight:600;font-size:13px">Reload page</button>' +
-        '</div>';
+    function _bLog(msg) {
+      var el = document.getElementById('boot-log');
+      if (el) el.innerHTML += '<div>' + msg + '</div>';
+    }
+    _bLog('Scripts loading...');
+
+    window.onerror = function(msg, src, line) {
+      var inner = document.getElementById('boot-status-inner');
+      if (inner) {
+        inner.innerHTML =
+          '<div style="font-size:24px;margin-bottom:12px">&#9888;</div>' +
+          '<div style="font-size:15px;font-weight:bold;color:#c00;margin-bottom:12px">JavaScript error — cannot start</div>' +
+          '<div style="font-size:12px;background:#fee;border:1px solid #fcc;border-radius:6px;padding:12px;text-align:left;font-family:monospace;word-break:break-all">' +
+          (msg || '') + '<br><span style="color:#888">' + ((src || '').split('/').pop()) + ':' + (line || 0) + '</span></div>' +
+          '<button onclick="location.reload()" style="margin-top:16px;padding:10px 24px;background:#ffe;border:1px solid #cca;border-radius:6px;cursor:pointer;font-weight:bold;font-size:13px">Reload page</button>';
+        document.getElementById('boot-status').style.display = 'flex';
+      }
       return false;
     };
   </script>
-
-  <!-- Pre-JS loading screen — visible immediately, removed by app.js on mount -->
-  <style>
-    #pre-js {
-      position: fixed; inset: 0; display: flex; align-items: center;
-      justify-content: center; z-index: 9999;
-      background: linear-gradient(135deg, #FFD0E6 0%, #F8F2FF 42%, #C8EDD8 100%);
-      font-family: 'Inter', sans-serif;
-    }
-    #pre-js .pj-box { text-align: center; padding: 32px; }
-    #pre-js .pj-icon { font-size: 40px; margin-bottom: 16px; }
-    #pre-js .pj-title { font-size: 15px; font-weight: 600; color: #1A1028; margin: 0 0 8px; }
-    #pre-js .pj-sub { font-size: 13px; color: rgba(26,16,40,0.55); margin: 0; }
-  </style>
-  <div id="pre-js">
-    <div class="pj-box">
-      <div class="pj-icon">⏳</div>
-      <p class="pj-title">Loading Digital Brand Command Center</p>
-      <p class="pj-sub">If this persists more than 5 seconds, open browser console (F12) for errors</p>
-    </div>
-  </div>
 
   <!-- Config must load before everything else -->
   <script src="config.js"></script>
