@@ -36,7 +36,7 @@ var REGISTRY_HEADERS = [
   'Parent Folder', 'Full Folder Path', 'Google Drive URL',
   'Created Date', 'Modified Date', 'Owner', 'Size',
   'Naming Check', 'Status', 'Last Synced',
-  'Suggested New Name', 'Rename Approval', 'Rename Result', 'Renamed Date',
+  'Suggested New Name', 'Rename Approval', 'Rename Result', 'Renamed Date', 'Skipped Reason',
 ];
 
 // Column indices (0-based) for rename workflow columns
@@ -45,10 +45,11 @@ var RENAME_COL = {
   FILE_NAME:    1,
   TYPE:         2,
   NAMING:       12,
-  SUGGESTED:    15,
-  APPROVAL:     16,
-  RESULT:       17,
-  RENAMED_DATE: 18,
+  SUGGESTED:      15,
+  APPROVAL:       16,
+  RESULT:         17,
+  RENAMED_DATE:   18,
+  SKIPPED_REASON: 19,
 };
 
 // MIME type → human-readable label
@@ -288,10 +289,11 @@ function writeToSheet(sheet, rows, syncTime) {
       var fid = (r[RENAME_COL.FILE_ID] || '').toString().trim();
       if (fid) {
         savedRename[fid] = {
-          suggested:   r[RENAME_COL.SUGGESTED]    || '',
-          approval:    r[RENAME_COL.APPROVAL]     || '',
-          result:      r[RENAME_COL.RESULT]       || '',
-          renamedDate: r[RENAME_COL.RENAMED_DATE] || '',
+          suggested:     r[RENAME_COL.SUGGESTED]      || '',
+          approval:      r[RENAME_COL.APPROVAL]       || '',
+          result:        r[RENAME_COL.RESULT]         || '',
+          renamedDate:   r[RENAME_COL.RENAMED_DATE]   || '',
+          skippedReason: r[RENAME_COL.SKIPPED_REASON] || '',
         };
       }
     });
@@ -303,7 +305,7 @@ function writeToSheet(sheet, rows, syncTime) {
     .setValues([REGISTRY_HEADERS.slice(0, 15)])
     .setFontWeight('bold')
     .setBackground('#e8f0fe');
-  sheet.getRange(1, 16, 1, 4)
+  sheet.getRange(1, 16, 1, 5)
     .setValues([REGISTRY_HEADERS.slice(15)])
     .setFontWeight('bold')
     .setBackground('#fef3c7');
@@ -317,10 +319,11 @@ function writeToSheet(sheet, rows, syncTime) {
       r.fileId,   r.fileName, r.type,    r.mimeType, r.brand,
       r.parent,   r.path,     r.url,     r.created,  r.modified,
       r.owner,    r.size,     r.naming,  r.status,   syncTimeStr,
-      rd.suggested   || '',
-      rd.approval    || '',
-      rd.result      || '',
-      rd.renamedDate || '',
+      rd.suggested     || '',
+      rd.approval      || '',
+      rd.result        || '',
+      rd.renamedDate   || '',
+      rd.skippedReason || '',
     ];
   });
 
@@ -564,6 +567,7 @@ function autoSuggestNames() {
     var row      = data[i];
     var sheetRow = i + 2;
 
+    var fileId   = (row[0]  || '').toString().trim();
     var fileName = (row[1]  || '').toString().trim();
     var type     = (row[2]  || '').toString().trim();
     var brand    = (row[4]  || '').toString().trim();
@@ -571,17 +575,33 @@ function autoSuggestNames() {
     var naming   = (row[12] || '').toString().trim();
     var existing = (row[15] || '').toString().trim();
 
-    if (type === 'Folder')          { skipped++; continue; }
-    if (naming !== 'Rename Needed') { skipped++; continue; }
-    if (existing !== '')            { skipped++; continue; }
+    var reason = '';
+    if      (type === 'Folder')            reason = 'Folder skipped';
+    else if (!fileId)                      reason = 'Missing File ID';
+    else if (!brand)                       reason = 'Missing Brand';
+    else if (brand === 'UNASSIGNED')       reason = 'Unclassified brand';
+    else if (!parent)                      reason = 'Missing Parent Folder';
+    else if (naming !== 'Rename Needed')   reason = 'Already OK';
+    else if (existing !== '')              reason = 'Suggested name already exists';
+
+    if (reason) {
+      updates.push({ row: sheetRow, suggestion: null, reason: reason });
+      skipped++;
+      continue;
+    }
 
     var name = _buildSuggestedName(brand, parent, fileName, today);
-    updates.push({ row: sheetRow, name: name });
+    updates.push({ row: sheetRow, suggestion: name, reason: '' });
     suggested++;
   }
 
   updates.forEach(function(u) {
-    sheet.getRange(u.row, RENAME_COL.SUGGESTED + 1).setValue(u.name);
+    if (u.suggestion !== null) {
+      sheet.getRange(u.row, RENAME_COL.SUGGESTED      + 1).setValue(u.suggestion);
+      sheet.getRange(u.row, RENAME_COL.SKIPPED_REASON + 1).setValue('');
+    } else {
+      sheet.getRange(u.row, RENAME_COL.SKIPPED_REASON + 1).setValue(u.reason);
+    }
   });
   SpreadsheetApp.flush();
 
