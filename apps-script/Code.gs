@@ -215,9 +215,11 @@ function autoSuggestNames() {
     var naming   = (row[12] || '').toString().trim();
     var existing = (row[15] || '').toString().trim();
 
+    // Silently skip folders — no reason written
+    if (type === 'Folder') { skipped++; continue; }
+
     var reason = '';
-    if      (type === 'Folder')          reason = 'Folder skipped';
-    else if (!fileId)                    reason = 'Missing File ID';
+    if      (!fileId)                    reason = 'Missing File ID';
     else if (!brand)                     reason = 'Missing Brand';
     else if (brand === 'UNASSIGNED')     reason = 'Unclassified brand';
     else if (!parent)                    reason = 'Missing Parent Folder';
