@@ -215,8 +215,15 @@ function autoSuggestNames() {
     var naming   = (row[12] || '').toString().trim();
     var existing = (row[15] || '').toString().trim();
 
-    // Silently skip folders — no reason written
-    if (type === 'Folder') { skipped++; continue; }
+    // Silently skip folders — clear any old "Folder skipped" reason if present
+    if (type === 'Folder') {
+      var oldReason = (row[RENAME_COL.SKIPPED_REASON] || '').toString().trim();
+      if (oldReason === 'Folder skipped') {
+        updates.push({ row: sheetRow, suggestion: null, reason: '' });
+      }
+      skipped++;
+      continue;
+    }
 
     var reason = '';
     if      (!fileId)                    reason = 'Missing File ID';
