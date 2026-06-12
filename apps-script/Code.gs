@@ -526,35 +526,9 @@ function renameApprovedFiles() {
 // For every row where Type = File, Naming Check = Rename Needed,
 // and Suggested New Name is blank — generates a compliant filename:
 //
-//   BRAND_CATEGORY_DESCRIPTION_YYYYMMDD
+//   BRAND_PARENTFOLDER_DESCRIPTION_YYYYMMDD
 //
-// Writes only to Suggested New Name. No files are touched in Drive.
-
-var FOLDER_CATEGORIES = [
-  ['brand guide',   'BRAND_GUIDE'],
-  ['brand',         'BRAND'],
-  ['logo',          'LOGO'],
-  ['icon',          'ICON'],
-  ['social media',  'SOCIAL_MEDIA'],
-  ['social',        'SOCIAL'],
-  ['marketing',     'MARKETING'],
-  ['product',       'PRODUCT'],
-  ['video',         'VIDEO'],
-  ['photo',         'PHOTO'],
-  ['image',         'IMAGE'],
-  ['document',      'DOCUMENT'],
-  ['banner',        'BANNER'],
-  ['template',      'TEMPLATE'],
-  ['creative',      'CREATIVE'],
-  ['web',           'WEB'],
-  ['print',         'PRINT'],
-  ['presentation',  'PRESENTATION'],
-  ['brochure',      'BROCHURE'],
-  ['asset',         'ASSET'],
-  ['archive',       'ARCHIVE'],
-  ['inbox',         'INBOX'],
-  ['vendor',        'VENDOR'],
-];
+// Writes only to Suggested New Name. No files are renamed. No approval set.
 
 var DESC_STOP_WORDS = [
   'the','a','an','of','in','on','at','to','for','and','or','by','with','from',
@@ -579,9 +553,9 @@ function autoSuggestNames() {
     return;
   }
 
-  var data    = sheet.getRange(2, 1, lastRow - 1, REGISTRY_HEADERS.length).getValues();
-  var today   = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMdd');
-  var updates = [];
+  var data      = sheet.getRange(2, 1, lastRow - 1, REGISTRY_HEADERS.length).getValues();
+  var today     = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMdd');
+  var updates   = [];
   var suggested = 0, skipped = 0;
 
   ss.toast('Generating name suggestions...', 'DBCC Auto Suggest', -1);
@@ -592,10 +566,8 @@ function autoSuggestNames() {
 
     var fileName = (row[1]  || '').toString().trim();
     var type     = (row[2]  || '').toString().trim();
-    var mimeType = (row[3]  || '').toString().trim();
     var brand    = (row[4]  || '').toString().trim();
     var parent   = (row[5]  || '').toString().trim();
-    var fullPath = (row[6]  || '').toString().trim();
     var naming   = (row[12] || '').toString().trim();
     var existing = (row[15] || '').toString().trim();
 
@@ -603,7 +575,7 @@ function autoSuggestNames() {
     if (naming !== 'Rename Needed') { skipped++; continue; }
     if (existing !== '')            { skipped++; continue; }
 
-    var name = _buildSuggestedName(brand, parent, fullPath, fileName, mimeType, today);
+    var name = _buildSuggestedName(brand, parent, fileName, today);
     updates.push({ row: sheetRow, name: name });
     suggested++;
   }
@@ -619,12 +591,13 @@ function autoSuggestNames() {
   Logger.log('autoSuggestNames: suggested=' + suggested + ' skipped=' + skipped);
 }
 
-function _buildSuggestedName(brand, parent, fullPath, fileName, mimeType, today) {
-  var brandPart    = _normalizeBrand(brand);
-  var categoryPart = _deriveCategory(parent, fullPath, mimeType, fileName);
-  var descPart     = _deriveDescription(fileName, brand, categoryPart);
+// Builds: BRAND_PARENTFOLDER_DESCRIPTION_YYYYMMDD
+function _buildSuggestedName(brand, parent, fileName, today) {
+  var brandPart  = _normalizeBrand(brand);
+  var folderPart = _normalizeFolder(parent);
+  var descPart   = _deriveDescription(fileName, brand, folderPart);
 
-  var parts = [brandPart, categoryPart];
+  var parts = [brandPart, folderPart];
   if (descPart) parts.push(descPart);
   parts.push(today);
 
@@ -632,50 +605,33 @@ function _buildSuggestedName(brand, parent, fullPath, fileName, mimeType, today)
 }
 
 function _normalizeBrand(brand) {
-  return (brand || 'UNASSIGNED').toUpperCase().replace(/[\s\-]/g, '');
+  return (brand || 'UNASSIGNED')
+    .toUpperCase()
+    .replace(/[\s\-]/g, '');
 }
 
-function _deriveCategory(parent, fullPath, mimeType, fileName) {
-  var search = (parent + ' ' + fullPath).toLowerCase();
-
-  for (var i = 0; i < FOLDER_CATEGORIES.length; i++) {
-    if (search.indexOf(FOLDER_CATEGORIES[i][0]) > -1) return FOLDER_CATEGORIES[i][1];
-  }
-
-  // MIME type fallback
-  if (mimeType.indexOf('image/svg')               > -1) return 'VECTOR';
-  if (mimeType === 'application/postscript')            return 'VECTOR';
-  if (mimeType.indexOf('image/vnd.adobe.photoshop') > -1) return 'DESIGN';
-  if (mimeType.indexOf('image/')                   > -1) return 'IMAGE';
-  if (mimeType.indexOf('video/')                   > -1) return 'VIDEO';
-  if (mimeType.indexOf('audio/')                   > -1) return 'AUDIO';
-  if (mimeType === 'application/pdf')                   return 'DOCUMENT';
-  if (mimeType === 'application/zip')                   return 'ARCHIVE';
-  if (mimeType.indexOf('google-apps.presentation') > -1) return 'PRESENTATION';
-  if (mimeType.indexOf('google-apps.spreadsheet')  > -1) return 'SPREADSHEET';
-  if (mimeType.indexOf('google-apps.document')     > -1) return 'DOCUMENT';
-
-  // Filename keyword fallback
-  var fn = fileName.toLowerCase();
-  for (var j = 0; j < FOLDER_CATEGORIES.length; j++) {
-    if (fn.indexOf(FOLDER_CATEGORIES[j][0]) > -1) return FOLDER_CATEGORIES[j][1];
-  }
-
-  return 'ASSET';
+function _normalizeFolder(folderName) {
+  return (folderName || 'ASSETS')
+    .toUpperCase()
+    .replace(/[^A-Z0-9\s]/g, '')  // remove special chars
+    .trim()
+    .replace(/\s+/g, '_');         // spaces to underscores
 }
 
-function _deriveDescription(fileName, brand, category) {
-  var base   = fileName.replace(/\.[^.]+$/, '');          // strip extension
-  var parts  = base.split(/[\s_\-\.]+/);                  // split on delimiters
-  var bNorm  = (brand || '').toUpperCase().replace(/[\s\-]/g, '');
-  var catLow = (category || '').toLowerCase().replace(/_/g, ' ');
+function _deriveDescription(fileName, brand, folderNorm) {
+  var base  = fileName.replace(/\.[^.]+$/, '');   // strip extension
+  var parts = base.split(/[\s_\-\.]+/);            // split on delimiters
+
+  var bNorm = (brand || '').toUpperCase().replace(/[\s\-]/g, '');
+  var fParts = folderNorm.split('_');              // folder words to skip
 
   var clean = parts.filter(function(p) {
     if (!p || p.length < 2) return false;
     var u = p.toUpperCase().replace(/[\s\-]/g, '');
-    if (u === bNorm) return false;                        // skip brand token
-    if (/^\d+$/.test(p)) return false;                   // skip pure numbers
-    if (/^\d{4}/.test(p) && p.length >= 8) return false; // skip date-like strings
+    if (u === bNorm) return false;                         // skip brand token
+    if (fParts.indexOf(u) > -1) return false;              // skip folder words already in name
+    if (/^\d+$/.test(p)) return false;                     // skip pure numbers
+    if (/^\d{4}/.test(p) && p.length >= 6) return false;  // skip date-like strings
     if (DESC_STOP_WORDS.indexOf(p.toLowerCase()) > -1) return false;
     return true;
   });
