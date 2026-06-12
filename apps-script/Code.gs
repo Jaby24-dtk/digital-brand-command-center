@@ -23,7 +23,7 @@ var DC = {
   EXEC_TAB:          'Executive Dashboard',
   AUTOMATION_LOG_TAB:'Automation Log',
   TRIGGER_FUNC:      'syncAndAutoRenameNewFiles',
-  TRIGGER_HOURS:     1,
+  TRIGGER_MINUTES:   15,
   BRANDS: [
     'DETEKCAM', 'DETEKLAB', 'I-BG', 'SIPSAFE',
     'GERMONIZER', 'CORPORATE', 'SOCIAL MEDIA', 'VENDOR', 'ARCHIVE', 'INBOX',
@@ -703,11 +703,11 @@ function setupHourlyTrigger() {
   removeTrigger();
   ScriptApp.newTrigger(DC.TRIGGER_FUNC)
     .timeBased()
-    .everyHours(DC.TRIGGER_HOURS)
+    .everyMinutes(DC.TRIGGER_MINUTES)
     .create();
   SpreadsheetApp.getUi().alert(
-    'Hourly trigger created.\n\n' +
-    'Every hour the pipeline runs:\n' +
+    'Trigger created — runs every ' + DC.TRIGGER_MINUTES + ' minutes.\n\n' +
+    'Pipeline:\n' +
     '  1. Sync Drive Files\n' +
     '  2. Auto Suggest Names\n' +
     '  3. Auto Approve New Files\n' +
@@ -735,7 +735,7 @@ function showTriggerStatus() {
   });
   SpreadsheetApp.getUi().alert(active.length > 0
     ? 'Trigger active: ' + active.map(function(t) { return t.getHandlerFunction(); }).join(', ') +
-      '\nRuns every ' + DC.TRIGGER_HOURS + ' hour(s).'
+      '\nRuns every ' + DC.TRIGGER_MINUTES + ' minutes.'
     : 'No trigger active.\n\nUse DBCC → Setup Hourly Trigger to enable auto-sync + auto-rename.'
   );
 }
