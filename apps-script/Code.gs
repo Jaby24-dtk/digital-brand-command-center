@@ -1,6 +1,6 @@
 /**
  * ================================================================
- * DIGITAL BRAND COMMAND CENTER — Google Drive Sync Script
+ * DIGITAL BRAND COMMAND CENTER — Drive Live Registry Sync
  * ================================================================
  * Sheet:       https://docs.google.com/spreadsheets/d/16fQ4OBH9f7bZPtaf-n21IsQOm8fnLYPpyYSh_xp-iTg
  * Root Folder: https://drive.google.com/drive/folders/1CdF3craHFtAWiigQJgMgW9NJSAsOEgPx
@@ -9,9 +9,9 @@
  *   1. Open your Google Sheet
  *   2. Extensions → Apps Script
  *   3. Delete any existing code, paste this entire file
- *   4. Save (Ctrl+S), then reload your sheet
- *   5. Use the "⚡ Command Center" menu → "🔄 Sync Drive Files"
- *   6. Run "⏱ Setup Hourly Trigger" once to enable auto-sync
+ *   4. Save (Ctrl+S), reload your sheet
+ *   5. Use DBCC menu → Sync Drive Files
+ *   6. Run "Setup Hourly Trigger" once to enable auto-sync
  * ================================================================
  */
 
@@ -19,27 +19,23 @@
 
 var DC = {
   ROOT_FOLDER_ID: '1CdF3craHFtAWiigQJgMgW9NJSAsOEgPx',
-  VAULT_TAB:      'Digital Asset Vault',
+  REGISTRY_TAB:   'Drive Live Registry',
   EXEC_TAB:       'Executive Dashboard',
   TRIGGER_FUNC:   'syncDriveFiles',
   TRIGGER_HOURS:  1,
-  BRANDS:         ['DETEKCAM', 'DETEKLAB', 'I-BG', 'SIPSAFE'],
+  BRANDS: [
+    'DETEKCAM', 'DETEKLAB', 'I-BG', 'SIPSAFE',
+    'GERMONIZER', 'CORPORATE', 'SOCIAL MEDIA', 'VENDOR', 'ARCHIVE', 'INBOX',
+  ],
 };
 
-// Platform keyword → canonical label
-var PLATFORM_MAP = {
-  'INSTAGRAM': 'Instagram', 'IG': 'Instagram',
-  'TIKTOK':    'TikTok',    'TT': 'TikTok',
-  'FACEBOOK':  'Facebook',  'FB': 'Facebook',
-  'YOUTUBE':   'YouTube',   'YT': 'YouTube',
-  'TWITTER':   'Twitter/X', 'TW': 'Twitter/X', 'X': 'Twitter/X',
-  'LINKEDIN':  'LinkedIn',  'LI': 'LinkedIn',
-  'WEBSITE':   'Website',   'WEB': 'Website',
-  'EMAIL':     'Email',     'EM': 'Email',
-  'MAKE':      'Make.com',  'AUTOMATION': 'Make.com',
-  'PRINT':     'Print',     'OOH': 'OOH',
-  'STORIES':   'Stories',   'REELS': 'Reels',
-};
+// Registry tab column headers (15 columns)
+var REGISTRY_HEADERS = [
+  'File ID', 'File Name', 'Type', 'MIME Type', 'Brand',
+  'Parent Folder', 'Full Folder Path', 'Google Drive URL',
+  'Created Date', 'Modified Date', 'Owner', 'Size',
+  'Naming Check', 'Status', 'Last Synced',
+];
 
 // MIME type → human-readable label
 var MIME_MAP = {
@@ -54,475 +50,357 @@ var MIME_MAP = {
   'image/gif':                                'Image (GIF)',
   'image/webp':                               'Image (WebP)',
   'image/svg+xml':                            'SVG',
-  'image/vnd.adobe.photoshop':                'Photoshop (PSD)',
+  'image/vnd.adobe.photoshop':                'Photoshop',
   'application/postscript':                   'Illustrator / EPS',
   'video/mp4':                                'Video (MP4)',
   'video/quicktime':                          'Video (MOV)',
   'video/x-msvideo':                          'Video (AVI)',
   'audio/mpeg':                               'Audio (MP3)',
   'audio/wav':                                'Audio (WAV)',
-  'application/zip':                          'Archive (ZIP)',
-  'application/x-rar-compressed':             'Archive (RAR)',
+  'application/zip':                          'ZIP',
+  'text/plain':                               'Text',
+  'application/json':                         'JSON',
   'font/ttf':                                 'Font (TTF)',
   'font/otf':                                 'Font (OTF)',
-  'text/plain':                               'Text File',
-  'application/json':                         'JSON',
 };
-
-// Expected naming convention: BRAND_PLATFORM_CATEGORY_Description_YYYYMMDD
-var VAULT_HEADERS = [
-  'Brand', 'Asset Type', 'Folder/File Name', 'Google Drive Link', 'Owner',
-  'Status', 'Notes', 'Category', 'Platform', 'Review Owner', 'Review Date',
-  'Final Folder', 'Parsed Brand', 'Parsed Platform', 'Parsed Category / Campaign',
-  'Naming Check'
-];
 
 // ─── Custom Menu ──────────────────────────────────────────────────────────────
 
 function onOpen() {
-  SpreadsheetApp.getActiveSpreadsheet().addMenu('⚡ Command Center', [
-    { name: '🔄 Sync Drive Files',          functionName: 'syncDriveFiles'    },
-    { name: '📊 Refresh KPI Summary',        functionName: 'updateKPISummary'  },
-    null, // separator
-    { name: '⏱ Setup Hourly Trigger',        functionName: 'setupHourlyTrigger' },
-    { name: '🗑 Remove Trigger',              functionName: 'removeTrigger'      },
-    { name: 'ℹ️ View Trigger Status',         functionName: 'showTriggerStatus'  },
+  SpreadsheetApp.getActiveSpreadsheet().addMenu('DBCC', [
+    { name: 'Sync Drive Files',      functionName: 'syncDriveFiles'     },
+    null,
+    { name: 'Setup Hourly Trigger',  functionName: 'setupHourlyTrigger' },
+    { name: 'Remove Trigger',        functionName: 'removeTrigger'      },
+    { name: 'View Trigger Status',   functionName: 'showTriggerStatus'  },
   ]);
 }
 
 // ─── Main: Sync Drive Files ───────────────────────────────────────────────────
 
 function syncDriveFiles() {
-  var ss    = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(DC.VAULT_TAB);
+  var ss       = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet    = getOrCreateSheet(ss, DC.REGISTRY_TAB);
+  var syncTime = new Date();
 
-  if (!sheet) {
-    SpreadsheetApp.getUi().alert('❌ Sheet "' + DC.VAULT_TAB + '" not found.\nPlease create it first.');
-    return;
-  }
+  ss.toast('Scanning Google Drive...', 'DBCC Sync', -1);
+  Logger.log('syncDriveFiles started: ' + syncTime.toISOString());
 
-  ss.toast('📂 Scanning Google Drive folders...', '⚡ Command Center', -1);
-
-  // Snapshot existing manual edits so we can preserve them
-  var existingMap = buildExistingMap(sheet);
-
-  // Recursively scan from root folder
   var root    = DriveApp.getFolderById(DC.ROOT_FOLDER_ID);
-  var scanned = [];
-  scanFolder(root, '', scanned);
+  var results = [];
+  scanFolder(root, '', results);
 
-  ss.toast('⚙️ Processing ' + scanned.length + ' items...', '⚡ Command Center', -1);
+  Logger.log('Scan complete: ' + results.length + ' items found');
+  ss.toast('Writing ' + results.length + ' items to sheet...', 'DBCC Sync', -1);
 
-  // Merge with existing data (preserves Status, Notes, Review Owner, Review Date)
-  var rows = scanned.map(function(item) { return mergeWithExisting(item, existingMap); });
+  writeToSheet(sheet, results, syncTime);
+  updateKPISummary(ss, results);
 
-  // Sort: brand folders first, then by brand name, then by filename
-  rows.sort(function(a, b) {
-    if (a.brand !== b.brand) return a.brand.localeCompare(b.brand);
-    if (a.assetType === 'Folder' && b.assetType !== 'Folder') return -1;
-    if (a.assetType !== 'Folder' && b.assetType === 'Folder') return 1;
-    return a.name.localeCompare(b.name);
-  });
+  var msg = results.length + ' items synced. Last run: ' + syncTime.toLocaleString();
+  ss.toast(msg, 'DBCC Sync Complete', 8);
+  Logger.log('syncDriveFiles complete: ' + msg);
+}
 
-  // Write to sheet
-  writeToSheet(sheet, rows);
+// ─── Create tab if it does not exist ─────────────────────────────────────────
 
-  // Refresh KPI numbers on Executive Dashboard
-  updateKPISummary();
-
-  ss.toast(
-    '✅ ' + rows.length + ' items synced from Google Drive.\nLast run: ' + new Date().toLocaleString(),
-    '⚡ Sync Complete',
-    6
-  );
-
-  Logger.log('Sync complete: ' + rows.length + ' items written to ' + DC.VAULT_TAB);
+function getOrCreateSheet(ss, name) {
+  var sheet = ss.getSheetByName(name);
+  if (!sheet) {
+    sheet = ss.insertSheet(name);
+    Logger.log('Created new sheet tab: ' + name);
+  }
+  return sheet;
 }
 
 // ─── Recursive Folder Scanner ─────────────────────────────────────────────────
 
 function scanFolder(folder, parentPath, results) {
-  var folderName = folder.getName();
-  var folderPath = parentPath ? parentPath + ' / ' + folderName : folderName;
-  var brand      = detectBrand(folderName, folderPath);
+  var name   = folder.getName();
+  var path   = parentPath ? parentPath + ' / ' + name : name;
+  var brand  = detectBrand(name, path);
 
-  // Add the folder entry (skip the root folder itself)
+  // Add this folder as a row (skip the root folder itself)
   if (parentPath !== '') {
-    results.push(buildRow({
-      brand:       brand,
-      assetType:   'Folder',
-      name:        folderName,
-      link:        folder.getUrl(),
-      owner:       '',
-      mimeType:    'application/vnd.google-apps.folder',
-      path:        folderPath,
-      isFolder:    true,
-      createdDate: null,
-    }));
+    results.push({
+      fileId:   folder.getId(),
+      fileName: name,
+      type:     'Folder',
+      mimeType: 'application/vnd.google-apps.folder',
+      brand:    brand,
+      parent:   getParentName(folder),
+      path:     path,
+      url:      folder.getUrl(),
+      created:  '',
+      modified: '',
+      owner:    '',
+      size:     '',
+      naming:   'Folder',
+      status:   'Synced',
+    });
   }
 
-  // Scan all files in this folder
+  // Files in this folder
   var files = folder.getFiles();
   while (files.hasNext()) {
-    var file = files.next();
-    results.push(buildRow({
-      brand:       brand,
-      assetType:   getMimeLabel(file.getMimeType()),
-      name:        file.getName(),
-      link:        file.getUrl(),
-      owner:       getOwnerEmail(file),
-      mimeType:    file.getMimeType(),
-      path:        folderPath,
-      isFolder:    false,
-      createdDate: file.getDateCreated(),
-    }));
+    var file   = files.next();
+    var fName  = file.getName();
+    var fBrand = detectBrand(fName, path);
+
+    results.push({
+      fileId:   file.getId(),
+      fileName: fName,
+      type:     getMimeLabel(file.getMimeType()),
+      mimeType: file.getMimeType(),
+      brand:    fBrand !== 'UNASSIGNED' ? fBrand : brand,
+      parent:   name,
+      path:     path,
+      url:      file.getUrl(),
+      created:  safeDate(file.getDateCreated()),
+      modified: safeDate(file.getLastUpdated()),
+      owner:    getOwnerEmail(file),
+      size:     formatSize(file.getSize()),
+      naming:   checkNaming(fName, fBrand !== 'UNASSIGNED' ? fBrand : brand),
+      status:   'Synced',
+    });
   }
 
   // Recurse into subfolders
-  var subfolders = folder.getFolders();
-  while (subfolders.hasNext()) {
-    scanFolder(subfolders.next(), folderPath, results);
+  var subs = folder.getFolders();
+  while (subs.hasNext()) {
+    scanFolder(subs.next(), path, results);
   }
-}
-
-// ─── Build a single row object ────────────────────────────────────────────────
-
-function buildRow(item) {
-  var parsed    = parseFilename(item.name);
-  var naming    = checkNaming(item.name, item.brand, parsed, item.isFolder);
-  var platform  = parsed.platform  || detectFromPath(item.path, PLATFORM_MAP);
-  var category  = parsed.category  || detectCategoryFromPath(item.path);
-
-  // Determine initial status
-  var status = 'Pending Review';
-  var notes  = '';
-  if (item.isFolder) {
-    notes = 'Folder — detected by Drive Sync';
-  } else if (item.owner && item.owner.toLowerCase().indexOf('automation') > -1) {
-    status = 'Auto Logged';
-    notes  = 'Uploaded via Make.com / Drive Automation';
-  }
-
-  return {
-    brand:          item.brand,
-    assetType:      item.assetType,
-    name:           item.name,
-    link:           item.link,
-    owner:          item.owner,
-    status:         status,
-    notes:          notes,
-    category:       category,
-    platform:       platform,
-    reviewOwner:    '',
-    reviewDate:     '',
-    finalFolder:    suggestFinalFolder(item.brand, category, platform),
-    parsedBrand:    parsed.brand    || '',
-    parsedPlatform: parsed.platform || '',
-    parsedCategory: parsed.category || '',
-    namingCheck:    naming,
-  };
 }
 
 // ─── Brand Detection ──────────────────────────────────────────────────────────
 
 function detectBrand(name, path) {
-  var combined = (name + ' ' + path).toUpperCase();
+  var s = (name + ' ' + path).toUpperCase();
 
-  // Direct match (including I-BG variants)
-  if (combined.indexOf('DETEKCAM') > -1) return 'DETEKCAM';
-  if (combined.indexOf('DETEKLAB') > -1) return 'DETEKLAB';
-  if (combined.indexOf('I-BG')     > -1) return 'I-BG';
-  if (combined.indexOf('IBG')      > -1) return 'I-BG';
-  if (combined.indexOf('I_BG')     > -1) return 'I-BG';
-  if (combined.indexOf('SIPSAFE')  > -1) return 'SIPSAFE';
+  if (s.indexOf('DETEKCAM')     > -1) return 'DETEKCAM';
+  if (s.indexOf('DETEKLAB')     > -1) return 'DETEKLAB';
+  if (s.indexOf('I-BG')         > -1) return 'I-BG';
+  if (s.indexOf('IBG')          > -1) return 'I-BG';
+  if (s.indexOf('I_BG')         > -1) return 'I-BG';
+  if (s.indexOf('SIPSAFE')      > -1) return 'SIPSAFE';
+  if (s.indexOf('GERMONIZER')   > -1) return 'GERMONIZER';
+  if (s.indexOf('CORPORATE')    > -1) return 'CORPORATE';
+  if (s.indexOf('SOCIAL MEDIA') > -1) return 'SOCIAL MEDIA';
+  if (s.indexOf('SOCIALMEDIA')  > -1) return 'SOCIAL MEDIA';
+  if (s.indexOf('VENDOR')       > -1) return 'VENDOR';
+  if (s.indexOf('ARCHIVE')      > -1) return 'ARCHIVE';
+  if (s.indexOf('INBOX')        > -1) return 'INBOX';
 
-  return 'AUTO';
+  return 'UNASSIGNED';
 }
 
-// ─── Filename Parser ──────────────────────────────────────────────────────────
-// Convention: BRAND_PLATFORM_CATEGORY_Description_YYYYMMDD
+// ─── Naming Convention Check ──────────────────────────────────────────────────
+// Rule: BRAND_CATEGORY_DESCRIPTION_DATE → OK
+//       Otherwise → Rename Needed
 
-function parseFilename(filename) {
-  var base   = filename.replace(/\.[^.]+$/, ''); // strip extension
-  var parts  = base.split('_');
-  var result = { brand: '', platform: '', category: '', description: '', date: '' };
+function checkNaming(filename, brand) {
+  var base  = filename.replace(/\.[^.]+$/, '');  // strip extension
+  var parts = base.split('_');
 
-  if (parts.length < 1) return result;
+  if (parts.length < 2) return 'Rename Needed';
 
-  // Part 0 → Brand
-  var p0upper = parts[0].toUpperCase().replace('-', '');
-  var brandMatch = DC.BRANDS.filter(function(b) {
-    return b.replace('-', '') === p0upper;
-  });
-  if (brandMatch.length > 0) result.brand = brandMatch[0];
+  // Part 0 must match a known brand (case-insensitive, ignore dashes/spaces)
+  var p0          = parts[0].toUpperCase().replace(/[-\s]/g, '');
+  var brandNorm   = (brand || '').toUpperCase().replace(/[-\s]/g, '');
+  var knownNorms  = DC.BRANDS.map(function(b) { return b.toUpperCase().replace(/[-\s]/g, ''); });
 
-  // Part 1 → Platform
-  if (parts.length >= 2) {
-    var p1 = parts[1].toUpperCase();
-    result.platform = PLATFORM_MAP[p1] || '';
-  }
+  var brandMatch  = knownNorms.indexOf(p0) > -1 || p0 === brandNorm;
 
-  // Part 2 → Category / Campaign
-  if (parts.length >= 3) {
-    result.category = parts[2];
-  }
+  // Part 1 = category (must exist and be non-trivial)
+  var hasCategory = parts.length >= 2 && parts[1].length >= 2;
 
-  // Part 3+ → Description (everything except last segment if it looks like a date)
-  if (parts.length >= 4) {
-    var last = parts[parts.length - 1];
-    if (/^\d{6,8}$/.test(last)) {
-      result.date        = last;
-      result.description = parts.slice(3, -1).join(' ');
-    } else {
-      result.description = parts.slice(3).join(' ');
-    }
-  }
-
-  return result;
-}
-
-// ─── Naming Convention Check ─────────────────────────────────────────────────
-
-function checkNaming(filename, brand, parsed, isFolder) {
-  if (isFolder) return 'Folder';
-
-  var hasBrand    = parsed.brand    && DC.BRANDS.indexOf(parsed.brand) > -1;
-  var hasPlatform = parsed.platform && Object.keys(PLATFORM_MAP).some(function(k) {
-    return PLATFORM_MAP[k] === parsed.platform;
-  });
-  var hasCategory = parsed.category && parsed.category.length > 1;
-
-  if (hasBrand && hasPlatform && hasCategory) return 'Compliant ✓';
-  if (hasBrand && hasPlatform)                return 'Partial — Missing Category';
-  if (hasBrand)                               return 'Partial — Missing Platform';
+  if (brandMatch && hasCategory) return 'OK';
   return 'Rename Needed';
 }
 
-// ─── Detect platform or category from folder path ────────────────────────────
-
-function detectFromPath(path, map) {
-  var upper = path.toUpperCase();
-  var keys  = Object.keys(map);
-  for (var i = 0; i < keys.length; i++) {
-    if (upper.indexOf(keys[i]) > -1) return map[keys[i]];
-  }
-  return '';
-}
-
-function detectCategoryFromPath(path) {
-  var CATS = ['ASSETS', 'VIDEOS', 'CAMPAIGNS', 'LOGOS', 'SOCIAL', 'BRAND', 'TEMPLATES', 'PRESENTATIONS', 'REELS'];
-  var upper = path.toUpperCase();
-  for (var i = 0; i < CATS.length; i++) {
-    if (upper.indexOf(CATS[i]) > -1) {
-      return CATS[i].charAt(0) + CATS[i].slice(1).toLowerCase();
-    }
-  }
-  return '';
-}
-
-// ─── Suggest a final folder path ─────────────────────────────────────────────
-
-function suggestFinalFolder(brand, category, platform) {
-  if (!brand || brand === 'AUTO') return 'Needs Brand Assignment';
-  var path = brand;
-  if (category) path += ' / ' + category.toUpperCase();
-  if (platform && platform !== category) path += ' / ' + platform;
-  return path;
-}
-
-// ─── MIME type → human label ──────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function getMimeLabel(mime) {
   return MIME_MAP[mime] || mime || 'Unknown';
 }
 
-// ─── Get file owner email safely ──────────────────────────────────────────────
-
 function getOwnerEmail(file) {
   try {
     var owner = file.getOwner();
-    return owner ? owner.getEmail() : 'Google Drive Automation';
+    return owner ? owner.getEmail() : '';
   } catch (e) {
-    return 'Google Drive Automation';
+    return '';
   }
 }
 
-// ─── Preserve existing manual edits ──────────────────────────────────────────
-// Reads current vault data and builds a map: Drive URL → manual field values
-
-function buildExistingMap(sheet) {
-  var lastRow = sheet.getLastRow();
-  if (lastRow < 2) return {};
-  var data = sheet.getRange(2, 1, lastRow - 1, 16).getValues();
-  var map  = {};
-  data.forEach(function(row) {
-    var link  = row[3]; // Column D = Google Drive Link
-    var brand = (row[0] || '').toString().trim();
-    var name  = (row[2] || '').toString().trim();
-
-    // Primary key: Drive link (most reliable)
-    // Fallback key: brand + filename (catches manually-entered rows with no link yet)
-    var key = link || (brand + '|' + name);
-    if (key) {
-      map[key] = {
-        status:      row[5],
-        notes:       row[6],
-        category:    row[7],
-        platform:    row[8],
-        reviewOwner: row[9],
-        reviewDate:  row[10],
-      };
-    }
-  });
-  return map;
+function getParentName(folder) {
+  try {
+    var parents = folder.getParents();
+    return parents.hasNext() ? parents.next().getName() : '';
+  } catch (e) {
+    return '';
+  }
 }
 
-function mergeWithExisting(item, existingMap) {
-  // Try Drive link first, then brand|filename fallback
-  var prev = existingMap[item.link] || existingMap[item.brand + '|' + item.name];
-  if (!prev) return item;
-
-  if (prev.status && prev.status !== '' && prev.status !== 'Auto Logged') item.status = prev.status;
-  if (prev.notes       && prev.notes !== '')       item.notes       = prev.notes;
-  if (prev.category    && prev.category !== '')    item.category    = prev.category;
-  if (prev.platform    && prev.platform !== '')    item.platform    = prev.platform;
-  if (prev.reviewOwner && prev.reviewOwner !== '') item.reviewOwner = prev.reviewOwner;
-  if (prev.reviewDate  && prev.reviewDate !== '')  item.reviewDate  = prev.reviewDate;
-
-  return item;
+function safeDate(d) {
+  try {
+    return d ? Utilities.formatDate(d, Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm') : '';
+  } catch (e) {
+    return '';
+  }
 }
 
+function formatSize(bytes) {
+  if (!bytes || bytes === 0) return '';
+  if (bytes < 1024)                  return bytes + ' B';
+  if (bytes < 1024 * 1024)           return (bytes / 1024).toFixed(1) + ' KB';
+  if (bytes < 1024 * 1024 * 1024)    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+}
 
-// ─── Write rows to Digital Asset Vault ───────────────────────────────────────
+// ─── Write to Drive Live Registry ────────────────────────────────────────────
 
-function writeToSheet(sheet, rows) {
-  // Write header
-  sheet.getRange(1, 1, 1, VAULT_HEADERS.length)
-    .setValues([VAULT_HEADERS])
+function writeToSheet(sheet, rows, syncTime) {
+  var syncTimeStr = Utilities.formatDate(syncTime, Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss');
+
+  // Write header row
+  sheet.getRange(1, 1, 1, REGISTRY_HEADERS.length)
+    .setValues([REGISTRY_HEADERS])
     .setFontWeight('bold')
-    .setBackground('#f3f3f3');
+    .setBackground('#e8f0fe');
 
-  // Clear old data rows
+  // Clear old data
   var lastRow = sheet.getLastRow();
   if (lastRow > 1) {
-    sheet.getRange(2, 1, lastRow - 1, VAULT_HEADERS.length).clearContent().clearFormat();
+    sheet.getRange(2, 1, lastRow - 1, REGISTRY_HEADERS.length).clearContent().clearFormat();
   }
 
   if (rows.length === 0) return;
 
-  // Build 2D array and write in one batch (fast)
+  // Build 2D array
   var output = rows.map(function(r) {
     return [
-      r.brand, r.assetType, r.name, r.link, r.owner,
-      r.status, r.notes, r.category, r.platform,
-      r.reviewOwner, r.reviewDate, r.finalFolder,
-      r.parsedBrand, r.parsedPlatform, r.parsedCategory, r.namingCheck,
+      r.fileId,   r.fileName, r.type,    r.mimeType, r.brand,
+      r.parent,   r.path,     r.url,     r.created,  r.modified,
+      r.owner,    r.size,     r.naming,  r.status,   syncTimeStr,
     ];
   });
-  sheet.getRange(2, 1, output.length, VAULT_HEADERS.length).setValues(output);
 
-  // ── Colour-code Status column (F = col 6) ──
-  var statusColors = rows.map(function(r) {
-    switch (r.status) {
-      case 'Approved':       return ['#d4edda'];
-      case 'Pending Review': return ['#fff3cd'];
-      case 'Auto Logged':    return ['#d1ecf1'];
-      default:               return [null];
-    }
-  });
-  sheet.getRange(2, 6, rows.length, 1).setBackgrounds(statusColors);
+  sheet.getRange(2, 1, output.length, REGISTRY_HEADERS.length).setValues(output);
 
-  // ── Colour-code Naming Check column (P = col 16) ──
+  // Color-code Naming Check column (col 13)
   var namingColors = rows.map(function(r) {
-    var v = r.namingCheck;
-    if (v === 'Compliant ✓')      return ['#d4edda'];
-    if (v.indexOf('Partial') > -1) return ['#fff3cd'];
-    if (v === 'Rename Needed')     return ['#f8d7da'];
+    if (r.naming === 'OK')            return ['#d4edda'];
+    if (r.naming === 'Folder')        return ['#e8eaf6'];
+    if (r.naming === 'Rename Needed') return ['#f8d7da'];
     return [null];
   });
-  sheet.getRange(2, 16, rows.length, 1).setBackgrounds(namingColors);
+  sheet.getRange(2, 13, rows.length, 1).setBackgrounds(namingColors);
 
-  // ── Auto-fit columns ──
-  sheet.autoResizeColumns(1, VAULT_HEADERS.length);
+  // Light-shade folder rows in the Type column (col 3)
+  var typeColors = rows.map(function(r) {
+    return r.type === 'Folder' ? ['#f0f3ff'] : [null];
+  });
+  sheet.getRange(2, 3, rows.length, 1).setBackgrounds(typeColors);
 
-  // ── Freeze header row ──
+  sheet.autoResizeColumns(1, REGISTRY_HEADERS.length);
   sheet.setFrozenRows(1);
+
+  Logger.log('writeToSheet: ' + rows.length + ' rows written');
 }
 
-// ─── Update Executive Dashboard KPI row ──────────────────────────────────────
+// ─── Update Executive Dashboard KPI Summary ───────────────────────────────────
 
-function updateKPISummary() {
-  var ss    = SpreadsheetApp.getActiveSpreadsheet();
-  var vault = ss.getSheetByName(DC.VAULT_TAB);
-  var exec  = ss.getSheetByName(DC.EXEC_TAB);
-  if (!vault || !exec) return;
+function updateKPISummary(ss, rows) {
+  var exec = ss.getSheetByName(DC.EXEC_TAB);
+  if (!exec) {
+    Logger.log('Executive Dashboard tab not found — skipping KPI update');
+    return;
+  }
 
-  var data = vault.getLastRow() > 1
-    ? vault.getRange(2, 1, vault.getLastRow() - 1, 16).getValues()
-    : [];
+  var files   = rows.filter(function(r) { return r.type !== 'Folder'; });
+  var folders = rows.filter(function(r) { return r.type === 'Folder'; });
 
-  var totalAssets   = data.length;
-  var pending       = data.filter(function(r) { return r[5] === 'Pending Review'; }).length;
-  var renameNeeded  = data.filter(function(r) { return r[15] === 'Rename Needed'; }).length;
-  var autoLogged    = data.filter(function(r) { return r[5] === 'Auto Logged'; }).length;
+  // Unique brands (excluding UNASSIGNED)
+  var brandSet = {};
+  files.forEach(function(r) {
+    if (r.brand && r.brand !== 'UNASSIGNED') brandSet[r.brand] = true;
+  });
+  var totalBrands  = Object.keys(brandSet).length;
+  var totalAssets  = files.length;
+  var totalFolders = folders.length;
 
-  // Executive Dashboard layout (1-indexed rows):
-  // Row 2 col B = Last refreshed timestamp
-  // Row 4 = KPI values: A=Brands, B=Assets, C=Pending, D=Rename, E=AutoLogged
+  var renameNeeded = files.filter(function(r) { return r.naming === 'Rename Needed'; }).length;
+  var autoLogged   = files.filter(function(r) { return r.status === 'Synced'; }).length;
+
+  // Pending = files with no path (shouldn't happen, but just in case)
+  var pending = files.filter(function(r) { return !r.path || r.path.trim() === ''; }).length;
+
+  // Recently Modified = files with Modified Date in last 7 days
+  var sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  var recentlyMod  = files.filter(function(r) {
+    if (!r.modified) return false;
+    var d = new Date(r.modified);
+    return !isNaN(d.getTime()) && d >= sevenDaysAgo;
+  }).length;
+
+  // Overall Health = % of files with Naming Check = OK
+  var okFiles = files.filter(function(r) { return r.naming === 'OK'; }).length;
+  var health  = totalAssets > 0 ? Math.round((okFiles / totalAssets) * 100) : 0;
+
+  // Write KPI header (row 3) and values (row 4) in Executive Dashboard
+  var kpiHeaders = [
+    'Total Brands', 'Total Assets', 'Total Folders', 'Rename Needed',
+    'Recently Modified', 'Auto Logged', 'Pending Review', 'Overall Health',
+  ];
+  var kpiValues = [
+    totalBrands, totalAssets, totalFolders, renameNeeded,
+    recentlyMod, autoLogged, pending, health + '%',
+  ];
+
   exec.getRange(2, 2).setValue(new Date());
-  exec.getRange(4, 1).setValue(DC.BRANDS.length);
-  exec.getRange(4, 2).setValue(totalAssets);
-  exec.getRange(4, 3).setValue(pending);
-  exec.getRange(4, 4).setValue(renameNeeded);
-  exec.getRange(4, 5).setValue(autoLogged);
+  exec.getRange(3, 1, 1, kpiHeaders.length).setValues([kpiHeaders]).setFontWeight('bold').setBackground('#f3f3f3');
+  exec.getRange(4, 1, 1, kpiValues.length).setValues([kpiValues]);
 
-  Logger.log('KPI summary updated: assets=' + totalAssets + ', pending=' + pending + ', rename=' + renameNeeded);
+  Logger.log(
+    'KPI update: brands=' + totalBrands +
+    ' assets=' + totalAssets +
+    ' folders=' + totalFolders +
+    ' rename=' + renameNeeded +
+    ' recent=' + recentlyMod +
+    ' health=' + health + '%'
+  );
 }
 
-// ─── Hourly Time Trigger ──────────────────────────────────────────────────────
+// ─── Hourly Trigger Management ────────────────────────────────────────────────
 
 function setupHourlyTrigger() {
-  removeTrigger(); // Remove any existing trigger first to avoid duplicates
-
+  removeTrigger();
   ScriptApp.newTrigger(DC.TRIGGER_FUNC)
     .timeBased()
     .everyHours(DC.TRIGGER_HOURS)
     .create();
-
   SpreadsheetApp.getUi().alert(
-    '✅ Hourly trigger created!\n\n' +
-    'Drive sync will run automatically every hour.\n' +
-    'You can also run it manually via ⚡ Command Center → 🔄 Sync Drive Files.'
+    'Hourly trigger created.\n\nsyncDriveFiles() will run automatically every hour.'
   );
 }
 
 function removeTrigger() {
-  var triggers = ScriptApp.getProjectTriggers();
-  var removed  = 0;
-  triggers.forEach(function(t) {
+  var removed = 0;
+  ScriptApp.getProjectTriggers().forEach(function(t) {
     if (t.getHandlerFunction() === DC.TRIGGER_FUNC) {
       ScriptApp.deleteTrigger(t);
       removed++;
     }
   });
-  if (removed > 0) {
-    Logger.log('Removed ' + removed + ' trigger(s) for ' + DC.TRIGGER_FUNC);
-  }
+  if (removed > 0) Logger.log('Removed ' + removed + ' trigger(s)');
 }
 
 function showTriggerStatus() {
-  var triggers = ScriptApp.getProjectTriggers().filter(function(t) {
+  var active = ScriptApp.getProjectTriggers().filter(function(t) {
     return t.getHandlerFunction() === DC.TRIGGER_FUNC;
   });
-
-  if (triggers.length === 0) {
-    SpreadsheetApp.getUi().alert('⚠️ No trigger active.\n\nUse ⏱ Setup Hourly Trigger to enable auto-sync.');
-  } else {
-    SpreadsheetApp.getUi().alert(
-      '✅ Trigger active!\n\n' +
-      'Function: ' + triggers[0].getHandlerFunction() + '\n' +
-      'Type: Time-based (every ' + DC.TRIGGER_HOURS + ' hour)\n' +
-      'Total triggers: ' + triggers.length
-    );
-  }
+  SpreadsheetApp.getUi().alert(active.length > 0
+    ? 'Trigger active: syncDriveFiles() runs every ' + DC.TRIGGER_HOURS + ' hour(s).\nTotal triggers: ' + active.length
+    : 'No trigger active.\n\nUse DBCC → Setup Hourly Trigger to enable auto-sync.'
+  );
 }

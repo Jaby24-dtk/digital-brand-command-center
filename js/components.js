@@ -13,16 +13,14 @@ const ICON = {
 // ─── KPI Meta config ─────────────────────────────────────────────────────────
 
 const KPI_META = {
-  total_brands:    { label: 'Total Brands',    icon: 'stack',         unit: '',  accent: 'pink'    },
-  total_assets:    { label: 'Total Assets',    icon: 'folder-open',   unit: '',  accent: 'blue'    },
-  pending_review:  { label: 'Pending Review',  icon: 'clock',         unit: '',  accent: 'yellow'  },
-  rename_needed:   { label: 'Rename Needed',   icon: 'pencil-simple', unit: '',  accent: 'orange'  },
-  auto_logged:     { label: 'Auto-logged',     icon: 'lightning',     unit: '',  accent: 'purple'  },
-  social_accounts: { label: 'Social Accounts', icon: 'share-network', unit: '',  accent: 'teal'    },
-  upcoming_posts:  { label: 'Upcoming Posts',  icon: 'calendar-blank',unit: '',  accent: 'blue'    },
-  access_risks:    { label: 'Access Risks',    icon: 'shield-warning',unit: '',  accent: 'red'     },
-  domains_tracked: { label: 'Domains Tracked', icon: 'globe',         unit: '',  accent: 'teal'    },
-  overall_health:  { label: 'Overall Health',  icon: 'heartbeat',     unit: '%', accent: 'green'   },
+  total_brands:      { label: 'Total Brands',       icon: 'stack',           unit: '',  accent: 'pink'   },
+  total_assets:      { label: 'Total Assets',       icon: 'folder-open',     unit: '',  accent: 'blue'   },
+  total_folders:     { label: 'Total Folders',      icon: 'folders',         unit: '',  accent: 'teal'   },
+  rename_needed:     { label: 'Rename Needed',      icon: 'pencil-simple',   unit: '',  accent: 'orange' },
+  recently_modified: { label: 'Recently Modified',  icon: 'clock-countdown', unit: '',  accent: 'purple' },
+  auto_logged:       { label: 'Auto Logged',        icon: 'lightning',       unit: '',  accent: 'blue'   },
+  pending_review:    { label: 'Pending Review',     icon: 'clock',           unit: '',  accent: 'yellow' },
+  overall_health:    { label: 'Overall Health',     icon: 'heartbeat',       unit: '%', accent: 'green'  },
 };
 
 // ─── Utility helpers ─────────────────────────────────────────────────────────
@@ -111,10 +109,8 @@ function KPICard(key, data) {
   const meta = KPI_META[key] || { label: key, icon: 'chart-bar', unit: '', accent: 'gold' };
   const val = data.unit === '%' ? data.value + '%' : formatNumber(data.value);
   const isHealth = key === 'overall_health';
-  const isRisk = key === 'access_risks' && data.value > 0;
-
   return `
-    <article class="kpi-card glass-card ${isRisk ? 'kpi-card--risk' : ''}" role="region" aria-label="${meta.label}">
+    <article class="kpi-card glass-card" role="region" aria-label="${meta.label}">
       <div class="kpi-card__header">
         <div class="kpi-icon kpi-icon--${meta.accent}">${ICON.svg(meta.icon)}</div>
         ${trendIcon(data.trend, data.change)}
@@ -130,8 +126,10 @@ function KPICard(key, data) {
 // ─── KPI Grid ────────────────────────────────────────────────────────────────
 
 function KPIGrid(kpis) {
-  const order = ['total_brands','total_assets','pending_review','rename_needed','auto_logged',
-                 'social_accounts','upcoming_posts','access_risks','domains_tracked','overall_health'];
+  const order = [
+    'total_brands', 'total_assets', 'total_folders', 'rename_needed',
+    'recently_modified', 'auto_logged', 'pending_review', 'overall_health',
+  ];
   return `
     <section id="kpi-section" class="dashboard-section">
       ${SectionHeader({ title: 'Executive KPIs', subtitle: 'Live performance overview across all brands' })}
@@ -364,8 +362,19 @@ function ErrorState(message = 'Failed to load data') {
   return `
     <div class="error-state">
       ${ICON.svg('warning-circle')}
-      <p>${message}</p>
-      <button class="btn-retry" onclick="window.DBCC.refresh()">Retry</button>
+      <h3 style="color:var(--text-primary);font-size:16px;font-weight:600">Cannot Load Dashboard</h3>
+      <p style="max-width:480px">${message}</p>
+      <div class="error-steps">
+        <p><strong>To fix:</strong></p>
+        <ol>
+          <li>Open your <a href="https://docs.google.com/spreadsheets/d/${CONFIG.SHEET_ID}" target="_blank" rel="noopener" style="color:var(--pink)">Google Sheet</a></li>
+          <li>Click <strong>Share</strong> → set to <strong>Anyone with the link → Viewer</strong></li>
+          <li>In Apps Script: run <strong>DBCC → Sync Drive Files</strong> to populate the Drive Live Registry tab</li>
+        </ol>
+      </div>
+      <button class="btn-retry" onclick="window.DBCC.refresh()">
+        ${ICON.svg('arrows-clockwise')} Retry
+      </button>
     </div>`;
 }
 

@@ -463,7 +463,7 @@ body::after {
 /* ─── KPI Grid ──────────────────────────────────────────────────── */
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 14px;
 }
 
@@ -947,7 +947,7 @@ body::after {
 /* ─── Loading skeletons ─────────────────────────────────────────── */
 .loading-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 14px;
   margin-bottom: var(--section-gap);
 }
@@ -987,7 +987,32 @@ body::after {
 
 .error-state i { font-size: 40px; color: var(--status-danger); }
 
+.error-steps {
+  background: rgba(255,255,255,0.55);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-md);
+  padding: 14px 18px;
+  text-align: left;
+  font-size: 13px;
+  color: var(--text-secondary);
+  max-width: 480px;
+  width: 100%;
+}
+
+.error-steps p { margin-bottom: 8px; color: var(--text-primary); }
+
+.error-steps ol {
+  list-style: decimal;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 .btn-retry {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 8px 20px;
   background: var(--pink-dim);
   border: 1px solid var(--pink-border);
@@ -1011,10 +1036,6 @@ body::after {
 ::selection { background: var(--pink-dim); color: var(--pink-dark); }
 
 /* ─── Responsive ────────────────────────────────────────────────── */
-@media (max-width: 1280px) {
-  .kpi-grid { grid-template-columns: repeat(5, 1fr); }
-}
-
 @media (max-width: 1100px) {
   .kpi-grid { grid-template-columns: repeat(4, 1fr); }
   .drive-grid { grid-template-columns: 1fr 1fr; }

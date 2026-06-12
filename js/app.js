@@ -178,7 +178,7 @@
     } catch (err) {
       console.error('[DBCC] Refresh error:', err);
       const root = document.getElementById('dashboard-content');
-      if (root) root.innerHTML = ErrorState('Failed to load dashboard data.');
+      if (root) root.innerHTML = ErrorState(err.message || 'Failed to load dashboard data.');
     } finally {
       isLoading = false;
       if (btn) btn.classList.remove('spinning');
