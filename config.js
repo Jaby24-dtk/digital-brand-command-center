@@ -21,23 +21,18 @@
 
 const CONFIG = {
 
-  // ─── PRIMARY DATA SOURCE ────────────────────────────────────────────────────
-  // Set this to your Apps Script Web App URL for full JSON support
-  DATA_SOURCE_URL: '',
+  // ─── GOOGLE SHEET ID ────────────────────────────────────────────────────────
+  // The spreadsheet ID from your Google Sheet URL.
+  // Sheet must be shared: Share → Anyone with the link → Viewer
+  SHEET_ID: '16fQ4OBH9f7bZPtaf-n21IsQOm8fnLYPpyYSh_xp-iTg',
 
-  // Data format returned by DATA_SOURCE_URL: 'json' | 'csv'
-  DATA_FORMAT: 'json',
-
-  // ─── INDIVIDUAL SHEET CSV URLS (Option A) ───────────────────────────────────
-  // Replace '' with the published CSV URL for each tab.
-  // Format: https://docs.google.com/spreadsheets/d/SHEET_ID/export?format=csv&gid=GID
-  SHEETS: {
-    KPI:     { url: '', label: 'KPI Metrics' },
-    ASSETS:  { url: '', label: 'Brand Assets' },
-    UPLOADS: { url: '', label: 'Recent Uploads' },
-    ACTIONS: { url: '', label: 'Action Items' },
-    RENAME:  { url: '', label: 'Rename Compliance' },
-    DRIVE:   { url: '', label: 'Drive Sync' },
+  // Tab names inside the spreadsheet
+  TAB_NAMES: {
+    EXECUTIVE:  'Executive Dashboard',
+    REGISTRY:   'Brand Registry',
+    ASSETS:     'Digital Asset Vault',
+    MISSING:    'Missing Asset Checklist',
+    SOCIAL:     'Social Posting Pipeline',
   },
 
   // ─── BRANDS ─────────────────────────────────────────────────────────────────
@@ -49,13 +44,13 @@ const CONFIG = {
   ],
 
   // ─── REFRESH ────────────────────────────────────────────────────────────────
-  // Auto-refresh interval in milliseconds. Set to 0 to disable.
-  REFRESH_INTERVAL: 30000,
+  // Auto-refresh interval in milliseconds (5 minutes).
+  REFRESH_INTERVAL: 300000,
 
   // ─── DEMO MODE ──────────────────────────────────────────────────────────────
-  // Displays realistic mock data when no DATA_SOURCE_URL is configured.
-  // Set to false once your data source is connected.
-  USE_DEMO_DATA: true,
+  // false = fetch live from Google Sheets. true = use built-in mock data.
+  // Falls back to mock data automatically if the sheet fetch fails.
+  USE_DEMO_DATA: false,
 
   // ─── COLUMN MAP ─────────────────────────────────────────────────────────────
   // Map your Google Sheet column headers to dashboard data fields.

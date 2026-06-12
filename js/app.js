@@ -46,23 +46,19 @@
     const updated = meta && meta.lastUpdated
       ? new Date(meta.lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       : '—';
-    const isDemo = meta && meta.source === 'demo';
+    const isDemo = !meta || meta.source === 'demo';
 
     const updatedEl = headerEl.querySelector('.last-updated');
     if (updatedEl) updatedEl.innerHTML = `<i class="ph ph-clock"></i> Updated ${updated}`;
 
-    // Inject demo badge if needed
+    // Sync source badge (Demo / Live)
     const titleDiv = headerEl.querySelector('.header-title');
     if (titleDiv) {
-      const existing = titleDiv.querySelector('.demo-badge');
-      if (isDemo && !existing) {
-        const badge = document.createElement('span');
-        badge.className = 'demo-badge';
-        badge.textContent = 'Demo Data';
-        titleDiv.appendChild(badge);
-      } else if (!isDemo && existing) {
-        existing.remove();
-      }
+      titleDiv.querySelectorAll('.demo-badge, .live-badge').forEach(b => b.remove());
+      const badge = document.createElement('span');
+      badge.className = isDemo ? 'demo-badge' : 'live-badge';
+      badge.textContent = isDemo ? 'Demo Data' : 'Live Data';
+      titleDiv.appendChild(badge);
     }
 
     // Remove loading spinner

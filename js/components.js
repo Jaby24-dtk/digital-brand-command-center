@@ -40,10 +40,11 @@ function trendIcon(trend, change) {
 
 function statusBadge(status) {
   const map = {
-    new:       { cls: 'blue',   label: 'New'      },
-    review:    { cls: 'yellow', label: 'Review'   },
-    approved:  { cls: 'green',  label: 'Approved' },
-    synced:    { cls: 'green',  label: 'Synced'   },
+    new:           { cls: 'blue',   label: 'New'        },
+    'auto-logged': { cls: 'teal',   label: 'Auto'       },
+    review:        { cls: 'yellow', label: 'Review'     },
+    approved:      { cls: 'green',  label: 'Approved'   },
+    synced:        { cls: 'green',  label: 'Synced'     },
     syncing:   { cls: 'blue',   label: 'Syncing'  },
     error:     { cls: 'red',    label: 'Error'    },
     pending:   { cls: 'yellow', label: 'Pending'  },
@@ -410,7 +411,10 @@ function Header(meta) {
   const updated = meta && meta.lastUpdated
     ? new Date(meta.lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     : '—';
-  const isDemo = meta && meta.source === 'demo';
+  const isDemo = !meta || meta.source === 'demo';
+  const sourceBadge = isDemo
+    ? '<span class="demo-badge">Demo Data</span>'
+    : '<span class="live-badge">Live Data</span>';
   return `
     <header class="top-header">
       <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
@@ -418,7 +422,7 @@ function Header(meta) {
       </button>
       <div class="header-title">
         <h1>${CONFIG.TITLE}</h1>
-        ${isDemo ? '<span class="demo-badge">Demo Data</span>' : ''}
+        ${sourceBadge}
       </div>
       <div class="header-actions">
         <span class="last-updated text-muted">${ICON.svg('clock')} Updated ${updated}</span>
