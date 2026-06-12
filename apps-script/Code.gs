@@ -29,13 +29,27 @@ var DC = {
   ],
 };
 
-// Registry tab column headers (15 columns)
+// Registry tab column headers (19 columns)
+// Cols 1-15: populated by sync. Cols 16-19: rename workflow (user-filled / written by rename function).
 var REGISTRY_HEADERS = [
   'File ID', 'File Name', 'Type', 'MIME Type', 'Brand',
   'Parent Folder', 'Full Folder Path', 'Google Drive URL',
   'Created Date', 'Modified Date', 'Owner', 'Size',
   'Naming Check', 'Status', 'Last Synced',
+  'Suggested New Name', 'Rename Approval', 'Rename Result', 'Renamed Date',
 ];
+
+// Column indices (0-based) for rename workflow columns
+var RENAME_COL = {
+  FILE_ID:      0,
+  FILE_NAME:    1,
+  TYPE:         2,
+  NAMING:       12,
+  SUGGESTED:    15,
+  APPROVAL:     16,
+  RESULT:       17,
+  RENAMED_DATE: 18,
+};
 
 // MIME type → human-readable label
 var MIME_MAP = {
@@ -68,11 +82,12 @@ var MIME_MAP = {
 
 function onOpen() {
   SpreadsheetApp.getActiveSpreadsheet().addMenu('DBCC', [
-    { name: 'Sync Drive Files',      functionName: 'syncDriveFiles'     },
+    { name: 'Sync Drive Files',        functionName: 'syncDriveFiles'       },
+    { name: 'Rename Approved Files',   functionName: 'renameApprovedFiles'  },
     null,
-    { name: 'Setup Hourly Trigger',  functionName: 'setupHourlyTrigger' },
-    { name: 'Remove Trigger',        functionName: 'removeTrigger'      },
-    { name: 'View Trigger Status',   functionName: 'showTriggerStatus'  },
+    { name: 'Setup Hourly Trigger',    functionName: 'setupHourlyTrigger'   },
+    { name: 'Remove Trigger',          functionName: 'removeTrigger'        },
+    { name: 'View Trigger Status',     functionName: 'showTriggerStatus'    },
   ]);
 }
 
@@ -262,26 +277,49 @@ function formatSize(bytes) {
 function writeToSheet(sheet, rows, syncTime) {
   var syncTimeStr = Utilities.formatDate(syncTime, Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss');
 
-  // Write header row
-  sheet.getRange(1, 1, 1, REGISTRY_HEADERS.length)
-    .setValues([REGISTRY_HEADERS])
-    .setFontWeight('bold')
-    .setBackground('#e8f0fe');
-
-  // Clear old data
+  // Preserve rename workflow columns (cols 16-19) before wiping the sheet.
+  // Keyed by File ID so values survive even if row order changes.
+  var savedRename = {};
   var lastRow = sheet.getLastRow();
   if (lastRow > 1) {
+    var existing = sheet.getRange(2, 1, lastRow - 1, REGISTRY_HEADERS.length).getValues();
+    existing.forEach(function(r) {
+      var fid = (r[RENAME_COL.FILE_ID] || '').toString().trim();
+      if (fid) {
+        savedRename[fid] = {
+          suggested:   r[RENAME_COL.SUGGESTED]    || '',
+          approval:    r[RENAME_COL.APPROVAL]     || '',
+          result:      r[RENAME_COL.RESULT]       || '',
+          renamedDate: r[RENAME_COL.RENAMED_DATE] || '',
+        };
+      }
+    });
     sheet.getRange(2, 1, lastRow - 1, REGISTRY_HEADERS.length).clearContent().clearFormat();
   }
 
+  // Write header row — sync cols in blue, rename cols in amber
+  sheet.getRange(1, 1, 1, 15)
+    .setValues([REGISTRY_HEADERS.slice(0, 15)])
+    .setFontWeight('bold')
+    .setBackground('#e8f0fe');
+  sheet.getRange(1, 16, 1, 4)
+    .setValues([REGISTRY_HEADERS.slice(15)])
+    .setFontWeight('bold')
+    .setBackground('#fef3c7');
+
   if (rows.length === 0) return;
 
-  // Build 2D array
+  // Build 2D array — restore saved rename values per file ID
   var output = rows.map(function(r) {
+    var rd = savedRename[r.fileId] || {};
     return [
       r.fileId,   r.fileName, r.type,    r.mimeType, r.brand,
       r.parent,   r.path,     r.url,     r.created,  r.modified,
       r.owner,    r.size,     r.naming,  r.status,   syncTimeStr,
+      rd.suggested   || '',
+      rd.approval    || '',
+      rd.result      || '',
+      rd.renamedDate || '',
     ];
   });
 
@@ -301,6 +339,15 @@ function writeToSheet(sheet, rows, syncTime) {
     return r.type === 'Folder' ? ['#f0f3ff'] : [null];
   });
   sheet.getRange(2, 3, rows.length, 1).setBackgrounds(typeColors);
+
+  // Color-code Rename Result column (col 18)
+  var resultColors = output.map(function(r) {
+    var result = (r[RENAME_COL.RESULT] || '').toString();
+    if (result === 'Renamed')         return ['#d4edda'];
+    if (result.indexOf('Error') > -1) return ['#f8d7da'];
+    return [null];
+  });
+  sheet.getRange(2, RENAME_COL.RESULT + 1, output.length, 1).setBackgrounds(resultColors);
 
   sheet.autoResizeColumns(1, REGISTRY_HEADERS.length);
   sheet.setFrozenRows(1);
@@ -369,6 +416,108 @@ function updateKPISummary(ss, rows) {
     ' recent=' + recentlyMod +
     ' health=' + health + '%'
   );
+}
+
+// ─── Rename Approved Files ────────────────────────────────────────────────────
+//
+// Renames files in Drive where:
+//   Type ≠ Folder
+//   Naming Check = Rename Needed
+//   Rename Approval = YES  (case-insensitive)
+//   Suggested New Name is not blank
+//   File ID is not blank
+//
+// After a successful rename, updates the row in-place:
+//   File Name      ← Suggested New Name
+//   Naming Check   ← OK
+//   Rename Result  ← Renamed
+//   Renamed Date   ← now
+//
+// On failure writes the error message into Rename Result.
+// Does not re-process rows already marked Rename Result = Renamed.
+
+function renameApprovedFiles() {
+  var ss    = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(DC.REGISTRY_TAB);
+
+  if (!sheet) {
+    SpreadsheetApp.getUi().alert(
+      'Drive Live Registry tab not found.\nRun DBCC → Sync Drive Files first.'
+    );
+    return;
+  }
+
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    SpreadsheetApp.getUi().alert(
+      'No data in Drive Live Registry.\nRun DBCC → Sync Drive Files first.'
+    );
+    return;
+  }
+
+  var data = sheet.getRange(2, 1, lastRow - 1, REGISTRY_HEADERS.length).getValues();
+
+  var renamed = 0, failed = 0, skipped = 0;
+  var now = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss');
+
+  ss.toast('Processing rename approvals...', 'DBCC Rename', -1);
+
+  for (var i = 0; i < data.length; i++) {
+    var row  = data[i];
+    var sheetRow = i + 2; // 1-indexed, offset by header
+
+    var fileId    = (row[RENAME_COL.FILE_ID]   || '').toString().trim();
+    var type      = (row[RENAME_COL.TYPE]      || '').toString().trim();
+    var naming    = (row[RENAME_COL.NAMING]    || '').toString().trim();
+    var suggested = (row[RENAME_COL.SUGGESTED] || '').toString().trim();
+    var approval  = (row[RENAME_COL.APPROVAL]  || '').toString().trim().toUpperCase();
+    var result    = (row[RENAME_COL.RESULT]    || '').toString().trim();
+
+    // Skip folders regardless of other columns
+    if (type === 'Folder') { skipped++; continue; }
+
+    // Skip rows that have already been renamed successfully
+    if (result === 'Renamed') { skipped++; continue; }
+
+    // All conditions must be met
+    if (!fileId)                   { skipped++; continue; }
+    if (naming  !== 'Rename Needed') { skipped++; continue; }
+    if (approval !== 'YES')          { skipped++; continue; }
+    if (!suggested)                  { skipped++; continue; }
+
+    try {
+      var file = DriveApp.getFileById(fileId);
+      file.setName(suggested);
+
+      // Update the row in-place (1-indexed columns)
+      sheet.getRange(sheetRow, RENAME_COL.FILE_NAME    + 1).setValue(suggested);
+      sheet.getRange(sheetRow, RENAME_COL.NAMING       + 1).setValue('OK').setBackground('#d4edda');
+      sheet.getRange(sheetRow, RENAME_COL.RESULT       + 1).setValue('Renamed').setBackground('#d4edda');
+      sheet.getRange(sheetRow, RENAME_COL.RENAMED_DATE + 1).setValue(now);
+
+      renamed++;
+      Logger.log('Renamed [row ' + sheetRow + '] ' + fileId + ' → "' + suggested + '"');
+
+    } catch (e) {
+      sheet.getRange(sheetRow, RENAME_COL.RESULT + 1)
+        .setValue('Error: ' + e.message)
+        .setBackground('#f8d7da');
+      failed++;
+      Logger.log('Rename failed [row ' + sheetRow + '] ' + fileId + ': ' + e.message);
+    }
+  }
+
+  SpreadsheetApp.flush();
+
+  var summary =
+    'Rename complete.\n\n' +
+    '✓ Renamed : ' + renamed  + '\n' +
+    '✗ Failed  : ' + failed   + '\n' +
+    '— Skipped : ' + skipped;
+
+  ss.toast(summary.replace(/\n/g, '  '), 'DBCC Rename Complete', 10);
+  SpreadsheetApp.getUi().alert(summary);
+  Logger.log('renameApprovedFiles done — renamed=' + renamed + ' failed=' + failed + ' skipped=' + skipped);
 }
 
 // ─── Hourly Trigger Management ────────────────────────────────────────────────
