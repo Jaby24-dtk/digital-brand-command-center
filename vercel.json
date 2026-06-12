@@ -1,6 +1,7 @@
 {
   "version": 2,
   "name": "digital-brand-command-center",
+  "alias": ["digital-brand-command-center.vercel.app"],
   "builds": [
     { "src": "index.html", "use": "@vercel/static" }
   ],
