@@ -2,6 +2,44 @@
  * app.js — Dashboard orchestration and lifecycle
  */
 
+// ─── Global safety net (runs before any other code) ──────────────────────────
+// Catches JS errors AND unhandled promise rejections so the screen is never blank.
+
+window.onerror = function (msg, src, line, col) {
+  var el = document.getElementById('dashboard-content') || document.getElementById('app');
+  if (!el) return false;
+  el.innerHTML =
+    '<div style="padding:32px;display:flex;flex-direction:column;gap:14px;max-width:640px;margin:40px auto">' +
+    '<span style="font-size:32px;color:#C43040">⚠</span>' +
+    '<h3 style="font-size:15px;font-weight:600;color:#1A1028;margin:0">JavaScript Error — cannot load dashboard</h3>' +
+    '<pre style="background:rgba(196,48,64,0.07);border:1px solid rgba(196,48,64,0.2);padding:12px;border-radius:8px;' +
+    'font-size:11px;white-space:pre-wrap;word-break:break-all;color:#1A1028;margin:0">' +
+    String(msg || '') + '\n' + String(src || '') + ':' + (line || 0) + ':' + (col || 0) +
+    '</pre>' +
+    '<button onclick="location.reload()" style="align-self:flex-start;padding:8px 20px;background:#FFD0E6;' +
+    'border:1px solid #F4AECB;border-radius:8px;cursor:pointer;font-weight:600;font-size:13px">Reload page</button>' +
+    '</div>';
+  return false;
+};
+
+window.onunhandledrejection = function (event) {
+  var el = document.getElementById('dashboard-content');
+  if (!el) return;
+  var reason = event.reason;
+  if (typeof ErrorState === 'function') {
+    el.innerHTML = ErrorState(reason instanceof Error ? reason : new Error(String(reason || 'Unhandled rejection')));
+  } else {
+    el.innerHTML =
+      '<div style="padding:32px;color:#1A1028;max-width:640px;margin:40px auto">' +
+      '<h3 style="margin:0 0 8px">Unhandled Error</h3>' +
+      '<pre style="font-size:12px;background:rgba(196,48,64,0.07);padding:12px;border-radius:8px">' +
+      String(reason || '') + '</pre>' +
+      '</div>';
+  }
+};
+
+// ─── Main IIFE ────────────────────────────────────────────────────────────────
+
 (function () {
   'use strict';
 
@@ -32,11 +70,6 @@
     animateCounters();
     animateProgressBars();
     bindNavHighlight();
-
-    // Replace Phosphor icon placeholders
-    if (window.PhosphorIcons) {
-      // Icons are already rendered via CSS class — no JS replace needed
-    }
   }
 
   function updateHeader(meta) {
@@ -51,7 +84,6 @@
     const updatedEl = headerEl.querySelector('.last-updated');
     if (updatedEl) updatedEl.innerHTML = `<i class="ph ph-clock"></i> Updated ${updated}`;
 
-    // Sync source badge (Demo / Live)
     const titleDiv = headerEl.querySelector('.header-title');
     if (titleDiv) {
       titleDiv.querySelectorAll('.demo-badge, .live-badge').forEach(b => b.remove());
@@ -61,7 +93,6 @@
       titleDiv.appendChild(badge);
     }
 
-    // Remove loading spinner
     const btn = document.getElementById('refreshBtn');
     if (btn) btn.classList.remove('spinning');
   }
@@ -71,14 +102,14 @@
   function animateCounters() {
     document.querySelectorAll('[data-rive-target="counter"]').forEach(el => {
       const target = parseFloat(el.dataset.value) || 0;
-      const isFloat = el.dataset.value.includes('.');
+      const isFloat = (el.dataset.value || '').includes('.');
       const duration = 800;
       const start = performance.now();
 
       function tick(now) {
         const elapsed = now - start;
         const progress = Math.min(elapsed / duration, 1);
-        const ease = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+        const ease = 1 - Math.pow(1 - progress, 3);
         const current = target * ease;
 
         const unit = el.dataset.unit || '';
@@ -111,9 +142,8 @@
       });
     });
 
-    // Health ring arcs
     document.querySelectorAll('.ring-arc').forEach(arc => {
-      const totalLength = arc.getTotalLength?.() || 150;
+      const totalLength = arc.getTotalLength ? arc.getTotalLength() : 150;
       arc.style.strokeDashoffset = totalLength.toString();
       requestAnimationFrame(() => {
         arc.style.transition = 'stroke-dashoffset 1s cubic-bezier(0.4,0,0.2,1)';
@@ -149,7 +179,7 @@
     if (!root) return;
     root.innerHTML = `
       <div class="loading-grid">
-        ${LoadingSkeleton(10, 'kpi')}
+        ${LoadingSkeleton(8, 'kpi')}
       </div>
       <div class="loading-grid loading-grid--single">
         ${LoadingSkeleton(1, 'table')}
@@ -176,9 +206,17 @@
       currentData = data;
       renderDashboard(data);
     } catch (err) {
-      console.error('[DBCC] Refresh error:', err);
+      // Log every diagnostic field
+      console.error('[DBCC] Fetch failed');
+      console.error('[DBCC] message:    ', err.message);
+      console.error('[DBCC] url:        ', err.url        || 'N/A');
+      console.error('[DBCC] httpStatus: ', err.httpStatus !== undefined ? err.httpStatus : 'N/A');
+      console.error('[DBCC] preview:    ', err.preview    || 'N/A');
+      console.error('[DBCC] stack:      ', err.stack      || 'N/A');
+
+      // Always show the error card — never leave a blank screen
       const root = document.getElementById('dashboard-content');
-      if (root) root.innerHTML = ErrorState(err.message || 'Failed to load dashboard data.');
+      if (root) root.innerHTML = ErrorState(err);
     } finally {
       isLoading = false;
       if (btn) btn.classList.remove('spinning');
@@ -188,11 +226,11 @@
   // ─── Sidebar toggle ────────────────────────────────────────────────────────
 
   function toggleSidebar() {
-    document.getElementById('sidebar')?.classList.toggle('sidebar--open');
-    document.getElementById('app')?.classList.toggle('sidebar-open');
+    document.getElementById('sidebar') && document.getElementById('sidebar').classList.toggle('sidebar--open');
+    document.getElementById('app')     && document.getElementById('app').classList.toggle('sidebar-open');
   }
 
-  // ─── Auto-refresh ─────────────────────────────────────────────────────────
+  // ─── Auto-refresh ──────────────────────────────────────────────────────────
 
   function startAutoRefresh() {
     if (refreshTimer) clearInterval(refreshTimer);
@@ -201,45 +239,57 @@
     }
   }
 
-  // ─── Init ─────────────────────────────────────────────────────────────────
+  // ─── Init ──────────────────────────────────────────────────────────────────
 
   async function init() {
-    // Inject sidebar and header shell
     const app = document.getElementById('app');
-    if (!app) return;
+    if (!app) {
+      console.error('[DBCC] #app element not found — cannot mount dashboard');
+      return;
+    }
 
-    app.innerHTML = `
-      ${Sidebar()}
-      <div class="main-wrap">
-        <header class="top-header" id="top-header">
-          <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
-            <i class="ph ph-list"></i>
-          </button>
-          <div class="header-title">
-            <h1>${CONFIG.TITLE}</h1>
-          </div>
-          <div class="header-actions">
-            <span class="last-updated text-muted"><i class="ph ph-clock"></i> Loading…</span>
-            <button class="btn-icon spinning" id="refreshBtn" aria-label="Refresh">
-              <i class="ph ph-arrows-clockwise"></i>
+    try {
+      app.innerHTML = `
+        ${Sidebar()}
+        <div class="main-wrap">
+          <header class="top-header" id="top-header">
+            <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+              <i class="ph ph-list"></i>
             </button>
-          </div>
-        </header>
-        <main class="main-content" id="dashboard-content" role="main">
-          <!-- content renders here -->
-        </main>
-      </div>`;
+            <div class="header-title">
+              <h1>${CONFIG.TITLE}</h1>
+            </div>
+            <div class="header-actions">
+              <span class="last-updated text-muted"><i class="ph ph-clock"></i> Loading…</span>
+              <button class="btn-icon spinning" id="refreshBtn" aria-label="Refresh">
+                <i class="ph ph-arrows-clockwise"></i>
+              </button>
+            </div>
+          </header>
+          <main class="main-content" id="dashboard-content" role="main"></main>
+        </div>`;
+    } catch (shellErr) {
+      console.error('[DBCC] Shell render error:', shellErr);
+      app.innerHTML =
+        '<div style="padding:32px;max-width:640px;margin:40px auto;color:#1A1028">' +
+        '<h3 style="margin:0 0 8px;font-size:15px;font-weight:600">Dashboard shell failed to render</h3>' +
+        '<pre style="font-size:11px;background:rgba(196,48,64,0.07);padding:12px;border-radius:8px">' +
+        (shellErr.message || String(shellErr)) + '</pre>' +
+        '<button onclick="location.reload()" style="margin-top:12px;padding:8px 20px;background:#FFD0E6;' +
+        'border:none;border-radius:8px;cursor:pointer;font-weight:600">Reload page</button>' +
+        '</div>';
+      return;
+    }
 
     showLoading();
 
-    document.getElementById('refreshBtn')?.addEventListener('click', refresh);
-    document.getElementById('sidebarToggle')?.addEventListener('click', toggleSidebar);
+    document.getElementById('refreshBtn')  && document.getElementById('refreshBtn').addEventListener('click', refresh);
+    document.getElementById('sidebarToggle') && document.getElementById('sidebarToggle').addEventListener('click', toggleSidebar);
 
-    // Close sidebar on nav link click (mobile)
     document.addEventListener('click', e => {
       if (e.target.closest('.nav-item') && window.innerWidth < 900) {
-        document.getElementById('sidebar')?.classList.remove('sidebar--open');
-        document.getElementById('app')?.classList.remove('sidebar-open');
+        document.getElementById('sidebar') && document.getElementById('sidebar').classList.remove('sidebar--open');
+        document.getElementById('app')     && document.getElementById('app').classList.remove('sidebar-open');
       }
     });
 
@@ -247,14 +297,14 @@
     startAutoRefresh();
   }
 
-  // ─── Public API ───────────────────────────────────────────────────────────
+  // ─── Public API ────────────────────────────────────────────────────────────
 
   window.DBCC = { refresh, toggleSidebar, getData: () => currentData };
 
-  // Boot when DOM is ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
     init();
   }
+
 })();

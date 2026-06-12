@@ -987,6 +987,96 @@ body::after {
 
 .error-state i { font-size: 40px; color: var(--status-danger); }
 
+/* Full diagnostic error card */
+.error-state--full {
+  align-items: flex-start;
+  text-align: left;
+  max-width: 720px;
+  margin: 32px auto;
+  background: rgba(255, 255, 255, 0.68);
+  backdrop-filter: var(--blur-glass);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-card);
+}
+
+.error-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.error-message {
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  max-width: 600px;
+  margin: 0;
+  line-height: 1.55;
+}
+
+/* Diagnostic table */
+.error-diagnostic {
+  width: 100%;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  font-size: 12px;
+}
+
+.error-diag-row {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.error-diag-row:last-child { border-bottom: none; }
+
+.error-diag-label {
+  padding: 8px 12px;
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--text-primary);
+  background: rgba(26, 16, 40, 0.04);
+  border-right: 1px solid var(--border-subtle);
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+}
+
+.error-diag-val {
+  padding: 8px 12px;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 11px;
+  color: var(--text-secondary);
+  word-break: break-all;
+  background: transparent;
+}
+
+.error-diag-val--bad  { color: var(--status-danger); font-weight: 700; }
+
+.error-diag-val--pre  {
+  white-space: pre-wrap;
+  max-height: 90px;
+  overflow-y: auto;
+  display: block;
+}
+
+/* Error pre-block for onerror handler */
+.error-pre {
+  background: rgba(196, 122, 10, 0.07);
+  border: 1px solid rgba(196, 122, 10, 0.22);
+  border-radius: var(--r-md);
+  padding: 12px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  word-break: break-all;
+  width: 100%;
+  margin: 0;
+}
+
 .error-steps {
   background: rgba(255,255,255,0.55);
   border: 1px solid var(--border-subtle);

@@ -358,21 +358,52 @@ function LoadingSkeleton(count = 1, type = 'card') {
 
 // ─── Error state ──────────────────────────────────────────────────────────────
 
-function ErrorState(message = 'Failed to load data') {
+function ErrorState(errOrMessage) {
+  const isErr      = errOrMessage instanceof Error;
+  const message    = isErr ? errOrMessage.message : (errOrMessage || 'An unknown error occurred.');
+  const url        = isErr ? (errOrMessage.url || '') : '';
+  const httpStatus = isErr && errOrMessage.httpStatus !== undefined ? errOrMessage.httpStatus : '—';
+  const preview    = isErr ? (errOrMessage.preview || '') : '';
+  const isBadStatus = typeof httpStatus === 'number' && httpStatus >= 400;
+
+  const sheetUrl   = url || `https://docs.google.com/spreadsheets/d/${CONFIG.SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Drive+Live+Registry`;
+  const previewSafe = preview
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .substring(0, 250);
+
   return `
-    <div class="error-state">
+    <div class="error-state error-state--full">
       ${ICON.svg('warning-circle')}
-      <h3 style="color:var(--text-primary);font-size:16px;font-weight:600">Cannot Load Dashboard</h3>
-      <p style="max-width:480px">${message}</p>
+      <h3 class="error-title">Cannot Load Dashboard</h3>
+      <p class="error-message">${message}</p>
+
+      <div class="error-diagnostic">
+        <div class="error-diag-row">
+          <span class="error-diag-label">Sheet URL</span>
+          <code class="error-diag-val">${sheetUrl}</code>
+        </div>
+        <div class="error-diag-row">
+          <span class="error-diag-label">HTTP Status</span>
+          <code class="error-diag-val${isBadStatus ? ' error-diag-val--bad' : ''}">${httpStatus}</code>
+        </div>
+        ${previewSafe ? `<div class="error-diag-row">
+          <span class="error-diag-label">Response</span>
+          <code class="error-diag-val error-diag-val--pre">${previewSafe}</code>
+        </div>` : ''}
+      </div>
+
       <div class="error-steps">
         <p><strong>To fix:</strong></p>
         <ol>
           <li>Open your <a href="https://docs.google.com/spreadsheets/d/${CONFIG.SHEET_ID}" target="_blank" rel="noopener" style="color:var(--pink)">Google Sheet</a></li>
-          <li>Click <strong>Share</strong> → set to <strong>Anyone with the link → Viewer</strong></li>
-          <li>In Apps Script: run <strong>DBCC → Sync Drive Files</strong> to populate the Drive Live Registry tab</li>
+          <li>Click <strong>Share → Anyone with the link → Viewer</strong></li>
+          <li>In Apps Script: <strong>DBCC → Sync Drive Files</strong> (creates the Drive Live Registry tab)</li>
         </ol>
       </div>
-      <button class="btn-retry" onclick="window.DBCC.refresh()">
+
+      <button class="btn-retry" onclick="window.DBCC && window.DBCC.refresh ? window.DBCC.refresh() : location.reload()">
         ${ICON.svg('arrows-clockwise')} Retry
       </button>
     </div>`;

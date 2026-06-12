@@ -47,16 +47,79 @@ function parseCSV(text) {
 
 async function fetchTab(tabName) {
   const url = `https://docs.google.com/spreadsheets/d/${CONFIG.SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tabName)}`;
-  const res = await fetch(url, { cache: 'no-store' });
-  if (!res.ok) throw new Error(`HTTP ${res.status} fetching tab "${tabName}"`);
-  const text = await res.text();
-  if (text.trim().startsWith('<')) {
-    throw new Error(
-      `Tab "${tabName}" is not accessible. ` +
-      `Open your Google Sheet → Share → Anyone with the link → Viewer.`
+
+  console.log('[DBCC] Fetching tab:', tabName);
+  console.log('[DBCC] URL:', url);
+
+  // ── Network request ────────────────────────────────────────────────────────
+  let res;
+  try {
+    res = await fetch(url, { cache: 'no-store' });
+  } catch (netErr) {
+    console.error('[DBCC] Network error:', netErr.message);
+    const err = new Error(
+      `Network error — cannot reach Google Sheets. ` +
+      `Check your internet connection. (${netErr.message})`
     );
+    err.url        = url;
+    err.httpStatus = 0;
+    throw err;
   }
-  return parseCSV(text);
+
+  console.log('[DBCC] HTTP status:', res.status, 'for tab:', tabName);
+
+  // ── Read body ──────────────────────────────────────────────────────────────
+  let text;
+  try {
+    text = await res.text();
+  } catch (readErr) {
+    const err = new Error(`Failed to read response body: ${readErr.message}`);
+    err.url        = url;
+    err.httpStatus = res.status;
+    throw err;
+  }
+
+  const preview = text.substring(0, 300);
+  console.log('[DBCC] Response preview:', preview);
+
+  // ── HTTP error ─────────────────────────────────────────────────────────────
+  if (!res.ok) {
+    const err = new Error(`HTTP ${res.status} — failed to fetch tab "${tabName}"`);
+    err.url        = url;
+    err.httpStatus = res.status;
+    err.preview    = preview;
+    throw err;
+  }
+
+  // ── HTML response = sheet is private or tab doesn't exist ──────────────────
+  if (text.trim().startsWith('<')) {
+    const err = new Error(
+      `Tab "${tabName}" returned HTML instead of CSV. ` +
+      `The sheet is not publicly accessible, or the tab does not exist yet. ` +
+      `Open your Google Sheet → Share → Anyone with the link → Viewer, ` +
+      `then run DBCC → Sync Drive Files to create the Drive Live Registry tab.`
+    );
+    err.url        = url;
+    err.httpStatus = res.status;
+    err.preview    = preview;
+    throw err;
+  }
+
+  // ── CSV parse ──────────────────────────────────────────────────────────────
+  let rows;
+  try {
+    rows = parseCSV(text);
+  } catch (parseErr) {
+    console.error('[DBCC] CSV parse error:', parseErr.message);
+    const err = new Error(`CSV parse error for tab "${tabName}": ${parseErr.message}`);
+    err.url        = url;
+    err.httpStatus = res.status;
+    err.preview    = preview;
+    throw err;
+  }
+
+  console.log('[DBCC] Parsed', rows.length, 'rows from tab:', tabName);
+  return rows;
 }
 
 // ─── Relative time formatter ──────────────────────────────────────────────────
