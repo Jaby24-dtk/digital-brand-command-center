@@ -198,7 +198,7 @@ function buildRow(item) {
   var notes  = '';
   if (item.isFolder) {
     notes = 'Folder — detected by Drive Sync';
-  } else if (!item.owner || item.owner.toLowerCase().indexOf('automation') > -1) {
+  } else if (item.owner && item.owner.toLowerCase().indexOf('automation') > -1) {
     status = 'Auto Logged';
     notes  = 'Uploaded via Make.com / Drive Automation';
   }
@@ -356,15 +356,21 @@ function buildExistingMap(sheet) {
   var data = sheet.getRange(2, 1, lastRow - 1, 16).getValues();
   var map  = {};
   data.forEach(function(row) {
-    var link = row[3]; // Column D = Google Drive Link
-    if (link) {
-      map[link] = {
-        status:      row[5],   // F - Status
-        notes:       row[6],   // G - Notes
-        category:    row[7],   // H - Category
-        platform:    row[8],   // I - Platform
-        reviewOwner: row[9],   // J - Review Owner
-        reviewDate:  row[10],  // K - Review Date
+    var link  = row[3]; // Column D = Google Drive Link
+    var brand = (row[0] || '').toString().trim();
+    var name  = (row[2] || '').toString().trim();
+
+    // Primary key: Drive link (most reliable)
+    // Fallback key: brand + filename (catches manually-entered rows with no link yet)
+    var key = link || (brand + '|' + name);
+    if (key) {
+      map[key] = {
+        status:      row[5],
+        notes:       row[6],
+        category:    row[7],
+        platform:    row[8],
+        reviewOwner: row[9],
+        reviewDate:  row[10],
       };
     }
   });
@@ -372,13 +378,11 @@ function buildExistingMap(sheet) {
 }
 
 function mergeWithExisting(item, existingMap) {
-  var prev = existingMap[item.link];
+  // Try Drive link first, then brand|filename fallback
+  var prev = existingMap[item.link] || existingMap[item.brand + '|' + item.name];
   if (!prev) return item;
 
-  // Only preserve if it was manually set (not default Auto Logged / Pending Review)
-  if (prev.status && prev.status !== '' && prev.status !== 'Auto Logged') {
-    item.status = prev.status;
-  }
+  if (prev.status && prev.status !== '' && prev.status !== 'Auto Logged') item.status = prev.status;
   if (prev.notes       && prev.notes !== '')       item.notes       = prev.notes;
   if (prev.category    && prev.category !== '')    item.category    = prev.category;
   if (prev.platform    && prev.platform !== '')    item.platform    = prev.platform;
@@ -387,6 +391,7 @@ function mergeWithExisting(item, existingMap) {
 
   return item;
 }
+
 
 // ─── Write rows to Digital Asset Vault ───────────────────────────────────────
 
