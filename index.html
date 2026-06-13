@@ -214,6 +214,11 @@ body::after{content:'';position:fixed;top:-200px;right:-100px;width:700px;height
 .text-success{color:var(--status-success)!important}.text-warning{color:var(--status-warning)!important}
 .text-danger{color:var(--status-danger)!important}.text-muted{color:var(--text-muted)!important}
 .text-pink{color:var(--pink)!important}
+.kpi-grid--5{grid-template-columns:repeat(5,1fr)}
+.kpi-card--text .kpi-value{font-size:16px;font-weight:700;letter-spacing:0;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:1200px){.kpi-grid--5{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:900px){.kpi-grid--5{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:640px){.kpi-grid--5{grid-template-columns:1fr 1fr}}
 .loading-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:var(--section-gap)}
 .loading-grid--two{grid-template-columns:1fr 1fr}.loading-grid--single{grid-template-columns:1fr}
 .skeleton{border-radius:var(--r-xl);background:linear-gradient(90deg,rgba(255,255,255,0.45) 25%,rgba(255,255,255,0.75) 50%,rgba(255,255,255,0.45) 75%);background-size:200% 100%;animation:shimmer 1.6s infinite}
@@ -310,6 +315,7 @@ const CONFIG = {
   TAB_NAMES: {
     EXECUTIVE:      'Executive Dashboard',
     DRIVE_REGISTRY: 'Drive Live Registry',
+    AUTOMATION_LOG: 'Automation Log',
     REGISTRY:       'Brand Registry',
     ASSETS:         'Digital Asset Vault',
     MISSING:        'Missing Asset Checklist',
@@ -367,7 +373,8 @@ function parseCSV(text) {
 
 async function fetchTab(tabName) {
   const url = 'https://docs.google.com/spreadsheets/d/' + CONFIG.SHEET_ID +
-    '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(tabName);
+    '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(tabName) +
+    '&_ts=' + Date.now();
   console.log('[DBCC] Fetching:', url);
   let res;
   try {
@@ -528,21 +535,123 @@ function parseDriveSync(rows) {
   }));
 }
 
-async function fetchLiveData() {
-  const rows = await fetchTab(CONFIG.TAB_NAMES.DRIVE_REGISTRY);
+// ── Automation Log columns (0-based) ──────────────────────────────────────────
+const LOG_COL = {
+  TIMESTAMP: 0, ACTION: 1, FILE_ID: 2, OLD_NAME: 3,
+  NEW_NAME: 4, BRAND: 5, RESULT: 6, MESSAGE: 7, TRIGGERED_BY: 8,
+};
+
+function parseAutomationKPIs(rows, lastSyncFromRegistry) {
+  var fallbackSync = lastSyncFromRegistry
+    ? relativeTime(lastSyncFromRegistry.replace(' ', 'T'))
+    : 'Never';
+
   if (!rows || rows.length < 2) {
-    const err = new Error('Drive Live Registry tab has ' + (rows?rows.length:0) + ' row(s) — needs data. Run DBCC → Sync Drive Files first.');
+    return {
+      renamed_today:  { value: 0,           change: 0, trend: 'stable' },
+      renamed_week:   { value: 0,           change: 0, trend: 'stable' },
+      failed_renames: { value: 0,           change: 0, trend: 'stable' },
+      success_rate:   { value: 100,         change: 0, trend: 'stable', unit: '%' },
+      last_sync:      { value: fallbackSync, change: 0, trend: 'stable', isText: true },
+    };
+  }
+  const data = rows.slice(1);
+
+  // Build a local YYYY-MM-DD string for today and 7 days ago
+  const now = new Date();
+  function datePad(n) { return String(n).padStart(2, '0'); }
+  function localDateStr(d) {
+    return d.getFullYear() + '-' + datePad(d.getMonth()+1) + '-' + datePad(d.getDate());
+  }
+  const todayStr   = localDateStr(now);
+  const weekAgo    = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
+  const weekAgoStr = localDateStr(weekAgo);
+
+  const renames        = data.filter(r => (r[LOG_COL.ACTION]||'').trim() === 'Rename');
+  const renameSuccess  = renames.filter(r => (r[LOG_COL.RESULT]||'').trim() === 'Success');
+  const renameFailed   = renames.filter(r => {
+    const res = (r[LOG_COL.RESULT]||'').trim();
+    return res === 'Failed' || res === 'Permission Denied' || res === 'Duplicate Name';
+  });
+
+  const renamedToday = renameSuccess.filter(r => {
+    return (r[LOG_COL.TIMESTAMP]||'').substring(0, 10) === todayStr;
+  }).length;
+
+  const renamedWeek = renameSuccess.filter(r => {
+    const d = (r[LOG_COL.TIMESTAMP]||'').substring(0, 10);
+    return d >= weekAgoStr && d <= todayStr;
+  }).length;
+
+  const failedCount  = renameFailed.length;
+  const totalRenames = renameSuccess.length + failedCount;
+  const successRate  = totalRenames > 0 ? Math.round((renameSuccess.length / totalRenames) * 100) : 100;
+
+  // Last Sync: prefer registry timestamp (always fresh), fall back to log
+  var lastSyncStr = fallbackSync;
+  if (!lastSyncFromRegistry) {
+    const syncRows = data.filter(r => (r[LOG_COL.ACTION]||'').trim() === 'Sync');
+    if (syncRows.length > 0) {
+      const latest = syncRows.reduce(function(best, r) {
+        return (!best || r[LOG_COL.TIMESTAMP] > best) ? r[LOG_COL.TIMESTAMP] : best;
+      }, '');
+      if (latest) lastSyncStr = relativeTime(latest.replace(' ', 'T'));
+    }
+  }
+
+  return {
+    renamed_today:  { value: renamedToday, change: 0, trend: 'stable' },
+    renamed_week:   { value: renamedWeek,  change: 0, trend: 'stable' },
+    failed_renames: { value: failedCount,  change: 0, trend: failedCount > 0 ? 'down' : 'stable' },
+    success_rate:   { value: successRate,  change: 0, trend: successRate >= 90 ? 'up' : 'down', unit: '%' },
+    last_sync:      { value: lastSyncStr,  change: 0, trend: 'stable', isText: true },
+  };
+}
+
+function _withTimeout(promise, ms) {
+  return Promise.race([
+    promise,
+    new Promise(function(_, reject) {
+      setTimeout(function() { reject(new Error('Fetch timed out after ' + ms + 'ms')); }, ms);
+    }),
+  ]);
+}
+
+async function fetchLiveData() {
+  // Fetch both tabs in parallel; Automation Log failure never blocks the main load
+  var registryPromise = fetchTab(CONFIG.TAB_NAMES.DRIVE_REGISTRY);
+  var logPromise = _withTimeout(
+    fetchTab(CONFIG.TAB_NAMES.AUTOMATION_LOG),
+    8000
+  ).catch(function(e) {
+    console.warn('[DBCC] Automation Log not available:', e.message);
+    return [];
+  });
+
+  var rows = await registryPromise;
+  if (!rows || rows.length < 2) {
+    var err = new Error('Drive Live Registry tab has ' + (rows?rows.length:0) + ' row(s) — needs data. Run DBCC → Sync Drive Files first.');
     err.rows = rows ? rows.length : 0; throw err;
   }
-  const brands = parseBrandSummary(rows);
+
+  var logRows = await logPromise;
+
+  // Pull the most recent "Last Synced" timestamp from the registry (COL 14)
+  var lastSyncFromRegistry = rows.slice(1)
+    .map(function(r) { return (r[14]||'').trim(); })
+    .filter(Boolean)
+    .reduce(function(best, t) { return t > best ? t : best; }, '');
+
+  var brands = parseBrandSummary(rows);
   return {
-    kpis: parseKPIs(rows),
-    brands: brands.length ? brands : [],
-    recentUploads: parseRecentUploads(rows),
-    actions: parseActions(rows),
+    kpis:             parseKPIs(rows),
+    automationKpis:   parseAutomationKPIs(logRows, lastSyncFromRegistry),
+    brands:           brands.length ? brands : [],
+    recentUploads:    parseRecentUploads(rows),
+    actions:          parseActions(rows),
     renameCompliance: parseRenameCompliance(rows),
-    driveSync: parseDriveSync(rows),
-    meta: { lastUpdated: new Date().toISOString(), source: 'live' },
+    driveSync:        parseDriveSync(rows),
+    meta:             { lastUpdated: new Date().toISOString(), source: 'live' },
   };
 }
 
@@ -556,14 +665,20 @@ async function loadDashboardData() { return fetchLiveData(); }
 const ICON = { svg: name => '<i class="ph ph-' + name + '" aria-hidden="true"></i>' };
 
 const KPI_META = {
-  total_brands:      { label:'Total Brands',       icon:'stack',           unit:'',  accent:'pink'   },
-  total_assets:      { label:'Total Assets',       icon:'folder-open',     unit:'',  accent:'blue'   },
-  total_folders:     { label:'Total Folders',      icon:'folders',         unit:'',  accent:'teal'   },
-  rename_needed:     { label:'Rename Needed',      icon:'pencil-simple',   unit:'',  accent:'orange' },
-  recently_modified: { label:'Recently Modified',  icon:'clock-countdown', unit:'',  accent:'purple' },
-  auto_logged:       { label:'Auto Logged',        icon:'lightning',       unit:'',  accent:'blue'   },
-  pending_review:    { label:'Pending Review',     icon:'clock',           unit:'',  accent:'yellow' },
-  overall_health:    { label:'Overall Health',     icon:'heartbeat',       unit:'%', accent:'green'  },
+  total_brands:      { label:'Total Brands',        icon:'stack',            unit:'',  accent:'pink'   },
+  total_assets:      { label:'Total Assets',        icon:'folder-open',      unit:'',  accent:'blue'   },
+  total_folders:     { label:'Total Folders',       icon:'folders',          unit:'',  accent:'teal'   },
+  rename_needed:     { label:'Rename Needed',       icon:'pencil-simple',    unit:'',  accent:'orange' },
+  recently_modified: { label:'Recently Modified',   icon:'clock-countdown',  unit:'',  accent:'purple' },
+  auto_logged:       { label:'Auto Logged',         icon:'lightning',        unit:'',  accent:'blue'   },
+  pending_review:    { label:'Pending Review',      icon:'clock',            unit:'',  accent:'yellow' },
+  overall_health:    { label:'Overall Health',      icon:'heartbeat',        unit:'%', accent:'green'  },
+  // Automation Log KPIs
+  renamed_today:     { label:'Renamed Today',       icon:'check-circle',     unit:'',  accent:'green'  },
+  renamed_week:      { label:'Renamed This Week',   icon:'calendar-check',   unit:'',  accent:'teal'   },
+  failed_renames:    { label:'Failed Renames',      icon:'x-circle',         unit:'',  accent:'red'    },
+  success_rate:      { label:'Success Rate',        icon:'chart-pie-slice',  unit:'%', accent:'green'  },
+  last_sync:         { label:'Last Sync',           icon:'arrows-clockwise', unit:'',  accent:'blue', isText:true },
 };
 
 function formatNumber(n) { if (n >= 1000) return (n/1000).toFixed(1).replace(/\.0$/,'')+'k'; return n.toString(); }
@@ -608,12 +723,14 @@ function SectionHeader(opts) {
 }
 
 function KPICard(key, data) {
-  const meta = KPI_META[key]||{label:key,icon:'chart-bar',unit:'',accent:'gold'};
-  const val  = data.unit==='%' ? data.value+'%' : formatNumber(data.value);
-  const isHealth = key==='overall_health';
-  return '<article class="kpi-card glass-card" role="region" aria-label="' + meta.label + '">' +
+  const meta    = KPI_META[key]||{label:key,icon:'chart-bar',unit:'',accent:'gold'};
+  const isText  = !!(data.isText || meta.isText);
+  const isHealth= key==='overall_health';
+  const val     = isText ? (data.value||'—') : (data.unit==='%' ? data.value+'%' : formatNumber(data.value));
+  const counterAttrs = isText ? '' : ' data-rive-target="counter" data-value="' + data.value + '" data-unit="' + (data.unit||'') + '"';
+  return '<article class="kpi-card glass-card' + (isText ? ' kpi-card--text' : '') + '" role="region" aria-label="' + meta.label + '">' +
     '<div class="kpi-card__header"><div class="kpi-icon kpi-icon--' + meta.accent + '">' + ICON.svg(meta.icon) + '</div>' + trendIcon(data.trend,data.change) + '</div>' +
-    '<div class="kpi-card__body"><div class="kpi-value" data-rive-target="counter" data-value="' + data.value + '" data-unit="' + (data.unit||'') + '">' + val + '</div><div class="kpi-label">' + meta.label + '</div></div>' +
+    '<div class="kpi-card__body"><div class="kpi-value"' + counterAttrs + '>' + val + '</div><div class="kpi-label">' + meta.label + '</div></div>' +
     (isHealth ? '<div class="kpi-card__footer"><div class="health-bar"><div class="health-bar__fill" style="width:' + data.value + '%;background:' + healthColor(data.value) + '"></div></div></div>' : '') +
     '</article>';
 }
@@ -623,6 +740,22 @@ function KPIGrid(kpis) {
   return '<section id="kpi-section" class="dashboard-section">' +
     SectionHeader({title:'Executive KPIs',subtitle:'Live performance overview across all brands'}) +
     '<div class="kpi-grid">' + order.map(k => KPICard(k, kpis[k]||{value:0,change:0,trend:'stable'})).join('') + '</div></section>';
+}
+
+function AutomationKPIGrid(kpis) {
+  const order = ['renamed_today','renamed_week','failed_renames','success_rate','last_sync'];
+  const defaults = {
+    renamed_today:  {value:0,   change:0,trend:'stable'},
+    renamed_week:   {value:0,   change:0,trend:'stable'},
+    failed_renames: {value:0,   change:0,trend:'stable'},
+    success_rate:   {value:100, change:0,trend:'stable',unit:'%'},
+    last_sync:      {value:'Never',change:0,trend:'stable',isText:true},
+  };
+  return '<section id="automation-log" class="dashboard-section">' +
+    SectionHeader({title:'Automation Log',subtitle:'Live rename pipeline stats — updated every 15 minutes'}) +
+    '<div class="kpi-grid kpi-grid--5">' +
+    order.map(k => KPICard(k, kpis[k]||defaults[k])).join('') +
+    '</div></section>';
 }
 
 function BrandRow(brand) {
@@ -801,8 +934,9 @@ function _registryUrl() {
     var root = document.getElementById('dashboard-content');
     if (!root) return;
     var html = '';
-    try { html += KPIGrid(data.kpis); }                 catch(e) { html += _sectionErr('KPI Grid',e); }
-    try { html += BrandAssetSummary(data.brands); }     catch(e) { html += _sectionErr('Brand Summary',e); }
+    try { html += KPIGrid(data.kpis); }                           catch(e) { html += _sectionErr('KPI Grid',e); }
+    try { html += AutomationKPIGrid(data.automationKpis||{}); }   catch(e) { html += _sectionErr('Automation KPIs',e); }
+    try { html += BrandAssetSummary(data.brands); }               catch(e) { html += _sectionErr('Brand Summary',e); }
     try {
       html += '<div class="two-col">';
       try { html += RecentUploads(data.recentUploads); } catch(e) { html += _sectionErr('Recent Uploads',e); }
@@ -929,7 +1063,7 @@ function _registryUrl() {
         '<div class="sidebar__logo"><div class="logo-mark"><i class="ph ph-crown-simple"></i></div>' +
         '<div class="logo-text"><span class="logo-title">DBCC</span><span class="logo-sub">Brand Command</span></div></div>' +
         '<nav class="sidebar__nav">' +
-        [['kpi-section','chart-bar','Overview'],['brand-summary','stack','Brands'],['recent-uploads','upload-simple','Uploads'],['priority-actions','list-checks','Actions'],['rename-compliance','pencil-simple','Rename'],['drive-sync','hard-drives','Drive Sync']].map(function(item,i) {
+        [['kpi-section','chart-bar','Overview'],['automation-log','robot','Automation'],['brand-summary','stack','Brands'],['recent-uploads','upload-simple','Uploads'],['priority-actions','list-checks','Actions'],['rename-compliance','pencil-simple','Rename'],['drive-sync','hard-drives','Drive Sync']].map(function(item,i) {
           return '<a href="#' + item[0] + '" class="nav-item' + (i===0?' nav-item--active':'') + '" data-section="' + item[0] + '"><i class="ph ph-' + item[1] + '"></i><span>' + item[2] + '</span></a>';
         }).join('') +
         '</nav><div class="sidebar__footer"><div class="live-indicator"><span class="pulse-dot"></span><span class="live-label">Live</span></div></div></aside>' +

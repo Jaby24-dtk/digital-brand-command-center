@@ -18,12 +18,12 @@
 // ─── Configuration ────────────────────────────────────────────────────────────
 
 var DC = {
-  ROOT_FOLDER_ID:    '1CdF3craHFtAWiigQJgMgW9NJSAsOEgPx',
-  REGISTRY_TAB:      'Drive Live Registry',
-  EXEC_TAB:          'Executive Dashboard',
-  AUTOMATION_LOG_TAB:'Automation Log',
-  TRIGGER_FUNC:      'syncAndAutoRenameNewFiles',
-  TRIGGER_MINUTES:   15,
+  ROOT_FOLDER_ID:     '1CdF3craHFtAWiigQJgMgW9NJSAsOEgPx',
+  REGISTRY_TAB:       'Drive Live Registry',
+  EXEC_TAB:           'Executive Dashboard',
+  AUTOMATION_LOG_TAB: 'Automation Log',
+  TRIGGER_FUNC:       'syncAndAutoRenameNewFiles',
+  TRIGGER_MINUTES:    15,
   BRANDS: [
     'DETEKCAM', 'DETEKLAB', 'I-BG', 'SIPSAFE',
     'GERMONIZER', 'CORPORATE', 'SOCIAL MEDIA', 'VENDOR', 'ARCHIVE', 'INBOX',
@@ -31,7 +31,6 @@ var DC = {
 };
 
 // Registry tab column headers (20 columns)
-// Cols 1-15: populated by sync. Cols 16-20: rename workflow (user-filled / auto-written).
 var REGISTRY_HEADERS = [
   'File ID', 'File Name', 'Type', 'MIME Type', 'Brand',
   'Parent Folder', 'Full Folder Path', 'Google Drive URL',
@@ -54,7 +53,13 @@ var RENAME_COL = {
 };
 
 // Automation Log column headers
-var LOG_HEADERS = ['Timestamp', 'Action', 'Brand', 'File Name', 'Old Name', 'New Name', 'Result', 'Notes'];
+var LOG_HEADERS = [
+  'Timestamp', 'Action', 'File ID', 'Old File Name',
+  'New File Name', 'Brand', 'Result', 'Message', 'Triggered By',
+];
+
+// Tracks how the current pipeline was invoked
+var _triggeredBy = 'Manual';
 
 // MIME type → human-readable label
 var MIME_MAP = {
@@ -100,6 +105,8 @@ function onOpen() {
     { name: 'Rename Approved Files',        functionName: 'renameApprovedFiles'       },
     { name: 'Sync + Auto Rename New Files', functionName: 'syncAndAutoRenameNewFiles' },
     null,
+    { name: 'View Automation Log',          functionName: 'viewAutomationLog'         },
+    null,
     { name: 'Setup Hourly Trigger',         functionName: 'setupHourlyTrigger'        },
     { name: 'Remove Trigger',               functionName: 'removeTrigger'             },
     { name: 'View Trigger Status',          functionName: 'showTriggerStatus'         },
@@ -107,53 +114,53 @@ function onOpen() {
 }
 
 // ─── Orchestrator: Sync + Auto Rename New Files ───────────────────────────────
-// Runs the full pipeline: sync → suggest → approve → rename.
-// Called by the hourly trigger and the "Sync + Auto Rename New Files" menu item.
 
 function syncAndAutoRenameNewFiles() {
+  _triggeredBy = 'Auto Pipeline';
   var ss  = SpreadsheetApp.getActiveSpreadsheet();
   var log = _getOrCreateLogSheet(ss);
-  var now = _now();
 
   Logger.log('syncAndAutoRenameNewFiles: pipeline start');
   ss.toast('DBCC: Starting sync + auto rename…', 'DBCC', -1);
-  _logAction(log, now, 'Pipeline Start', '', '', '', '', 'OK', '');
+  _log(log, 'Pipeline Start', '', '', '', '', 'OK', '');
 
   try { syncDriveFiles(); }
   catch(e) {
     Logger.log('syncDriveFiles error: ' + e.message);
-    _logAction(log, _now(), 'Sync Error', '', '', '', '', 'Error', e.message);
+    _log(log, 'Sync Error', '', '', '', '', 'Failed', e.message);
   }
 
   try { autoSuggestNames(); }
   catch(e) {
     Logger.log('autoSuggestNames error: ' + e.message);
-    _logAction(log, _now(), 'Suggest Error', '', '', '', '', 'Error', e.message);
+    _log(log, 'Suggest Error', '', '', '', '', 'Failed', e.message);
   }
 
   try { autoApproveNewFiles(); }
   catch(e) {
     Logger.log('autoApproveNewFiles error: ' + e.message);
-    _logAction(log, _now(), 'Approve Error', '', '', '', '', 'Error', e.message);
+    _log(log, 'Approve Error', '', '', '', '', 'Failed', e.message);
   }
 
   try { renameApprovedFiles(); }
   catch(e) {
     Logger.log('renameApprovedFiles error: ' + e.message);
-    _logAction(log, _now(), 'Rename Error', '', '', '', '', 'Error', e.message);
+    _log(log, 'Rename Error', '', '', '', '', 'Failed', e.message);
   }
 
-  _logAction(log, _now(), 'Pipeline Complete', '', '', '', '', 'OK', '');
+  _log(log, 'Pipeline Complete', '', '', '', '', 'OK', '');
   ss.toast('Sync + auto rename complete.', 'DBCC', 8);
   Logger.log('syncAndAutoRenameNewFiles: pipeline complete');
 }
 
-// ─── Main: Sync Drive Files ───────────────────────────────────────────────────
+// ─── Sync Drive Files ─────────────────────────────────────────────────────────
 
 function syncDriveFiles() {
+  _triggeredBy = _triggeredBy || 'Manual';
   var ss       = SpreadsheetApp.getActiveSpreadsheet();
   var sheet    = getOrCreateSheet(ss, DC.REGISTRY_TAB);
   var syncTime = new Date();
+  var log      = _getOrCreateLogSheet(ss);
 
   ss.toast('Scanning Google Drive…', 'DBCC Sync', -1);
   Logger.log('syncDriveFiles started: ' + syncTime.toISOString());
@@ -162,38 +169,26 @@ function syncDriveFiles() {
   var results = [];
   scanFolder(root, '', results);
 
-  Logger.log('Scan complete: ' + results.length + ' items found');
   ss.toast('Writing ' + results.length + ' items to sheet…', 'DBCC Sync', -1);
-
   writeToSheet(sheet, results, syncTime);
   updateKPISummary(ss, results);
 
-  var log = _getOrCreateLogSheet(ss);
-  _logAction(log, _now(), 'Sync Complete', '', '', '', '', 'OK', results.length + ' items');
-
-  var msg = results.length + ' items synced. Last run: ' + syncTime.toLocaleString();
-  ss.toast(msg, 'DBCC Sync Complete', 8);
-  Logger.log('syncDriveFiles complete: ' + msg);
+  _log(log, 'Sync', '', '', '', '', 'Success', results.length + ' items synced');
+  ss.toast(results.length + ' items synced.', 'DBCC Sync Complete', 8);
+  Logger.log('syncDriveFiles complete: ' + results.length + ' items');
 }
 
 // ─── Auto Suggest Names ───────────────────────────────────────────────────────
-// Generates BRAND_PARENTFOLDER_DESCRIPTION_YYYYMMDD for every qualifying row.
-// Writes Suggested New Name and Skipped Reason only. Does not rename files.
 
 function autoSuggestNames() {
+  _triggeredBy = _triggeredBy || 'Manual';
   var ss    = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName(DC.REGISTRY_TAB);
 
-  if (!sheet) {
-    _safeAlert('Drive Live Registry tab not found.\nRun DBCC → Sync Drive Files first.');
-    return;
-  }
+  if (!sheet) { _safeAlert('Drive Live Registry tab not found.\nRun DBCC → Sync Drive Files first.'); return; }
 
   var lastRow = sheet.getLastRow();
-  if (lastRow < 2) {
-    _safeAlert('No data found. Run DBCC → Sync Drive Files first.');
-    return;
-  }
+  if (lastRow < 2) { _safeAlert('No data found. Run DBCC → Sync Drive Files first.'); return; }
 
   var data      = sheet.getRange(2, 1, lastRow - 1, REGISTRY_HEADERS.length).getValues();
   var today     = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMdd');
@@ -215,7 +210,7 @@ function autoSuggestNames() {
     var naming   = (row[12] || '').toString().trim();
     var existing = (row[15] || '').toString().trim();
 
-    // Silently skip folders — clear any old "Folder skipped" reason if present
+    // Silently skip folders — clear any stale "Folder skipped" reason
     if (type === 'Folder') {
       var oldReason = (row[RENAME_COL.SKIPPED_REASON] || '').toString().trim();
       if (oldReason === 'Folder skipped') {
@@ -235,13 +230,17 @@ function autoSuggestNames() {
 
     if (reason) {
       updates.push({ row: sheetRow, suggestion: null, reason: reason });
+      // Log only actionable problems
+      if (reason === 'Missing File ID') {
+        _log(log, 'Suggest Skipped', fileId, fileName, '', brand, 'Skipped', reason);
+      }
       skipped++;
       continue;
     }
 
     var name = _buildSuggestedName(brand, parent, fileName, today);
     updates.push({ row: sheetRow, suggestion: name, reason: '' });
-    _logAction(log, _now(), 'Suggested', brand, fileName, fileName, name, 'OK', '');
+    _log(log, 'Suggested', fileId, fileName, name, brand, 'Success', '');
     suggested++;
   }
 
@@ -255,24 +254,17 @@ function autoSuggestNames() {
   });
   SpreadsheetApp.flush();
 
-  _logAction(log, _now(), 'Suggest Summary', '', '', '', '', 'OK',
+  _log(log, 'Suggest Summary', '', '', '', '', 'Success',
     'Suggested: ' + suggested + '  Skipped: ' + skipped);
-
-  var summary = 'Auto-suggest complete.\n\n✓ Suggested: ' + suggested + '\n— Skipped: ' + skipped;
-  ss.toast(summary.replace(/\n/g, '  '), 'DBCC Auto Suggest', 8);
-  _safeAlert(summary);
+  ss.toast('Suggested: ' + suggested + '  Skipped: ' + skipped, 'DBCC Auto Suggest', 8);
+  _safeAlert('Auto-suggest complete.\n\n✓ Suggested: ' + suggested + '\n— Skipped: ' + skipped);
   Logger.log('autoSuggestNames: suggested=' + suggested + ' skipped=' + skipped);
 }
 
 // ─── Auto Approve New Files ───────────────────────────────────────────────────
-// Sets Rename Approval = YES for files where:
-//   - Type = File
-//   - Naming Check = Rename Needed
-//   - Suggested New Name is filled
-//   - Rename Approval is blank  (never explicitly set)
-//   - Rename Result is blank    (not already renamed)
 
 function autoApproveNewFiles() {
+  _triggeredBy = _triggeredBy || 'Manual';
   var ss    = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName(DC.REGISTRY_TAB);
   if (!sheet) return;
@@ -288,22 +280,23 @@ function autoApproveNewFiles() {
     var row      = data[i];
     var sheetRow = i + 2;
 
+    var fileId    = (row[RENAME_COL.FILE_ID]   || '').toString().trim();
+    var fileName  = (row[RENAME_COL.FILE_NAME] || '').toString().trim();
     var type      = (row[RENAME_COL.TYPE]      || '').toString().trim();
+    var brand     = (row[4]                    || '').toString().trim();
     var naming    = (row[RENAME_COL.NAMING]    || '').toString().trim();
     var suggested = (row[RENAME_COL.SUGGESTED] || '').toString().trim();
     var approval  = (row[RENAME_COL.APPROVAL]  || '').toString().trim();
     var result    = (row[RENAME_COL.RESULT]    || '').toString().trim();
-    var brand     = (row[4] || '').toString().trim();
-    var fileName  = (row[1] || '').toString().trim();
 
     if (type === 'Folder')          continue;
     if (naming !== 'Rename Needed') continue;
     if (!suggested)                 continue;
-    if (approval !== '')            continue; // don't overwrite existing decision
-    if (result !== '')              continue; // already processed
+    if (approval !== '')            continue;
+    if (result !== '')              continue;
 
     sheet.getRange(sheetRow, RENAME_COL.APPROVAL + 1).setValue('YES');
-    _logAction(log, _now(), 'Auto Approved', brand, fileName, fileName, suggested, 'OK', '');
+    _log(log, 'Auto Approved', fileId, fileName, suggested, brand, 'Success', '');
     approved++;
   }
 
@@ -312,24 +305,16 @@ function autoApproveNewFiles() {
 }
 
 // ─── Rename Approved Files ────────────────────────────────────────────────────
-// Renames files in Drive where Rename Approval = YES and Rename Result is blank.
-// Updates File Name, Naming Check, Rename Result, Renamed Date in-place.
-// Logs every rename success and failure to Automation Log.
 
 function renameApprovedFiles() {
+  _triggeredBy = _triggeredBy || 'Manual';
   var ss    = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName(DC.REGISTRY_TAB);
 
-  if (!sheet) {
-    _safeAlert('Drive Live Registry tab not found.\nRun DBCC → Sync Drive Files first.');
-    return;
-  }
+  if (!sheet) { _safeAlert('Drive Live Registry tab not found.\nRun DBCC → Sync Drive Files first.'); return; }
 
   var lastRow = sheet.getLastRow();
-  if (lastRow < 2) {
-    _safeAlert('No data in Drive Live Registry.\nRun DBCC → Sync Drive Files first.');
-    return;
-  }
+  if (lastRow < 2) { _safeAlert('No data in Drive Live Registry.\nRun DBCC → Sync Drive Files first.'); return; }
 
   var data    = sheet.getRange(2, 1, lastRow - 1, REGISTRY_HEADERS.length).getValues();
   var log     = _getOrCreateLogSheet(ss);
@@ -351,12 +336,20 @@ function renameApprovedFiles() {
     var approval  = (row[RENAME_COL.APPROVAL]  || '').toString().trim().toUpperCase();
     var result    = (row[RENAME_COL.RESULT]    || '').toString().trim();
 
-    if (type === 'Folder')           { skipped++; continue; }
-    if (result === 'Renamed')        { skipped++; continue; }
-    if (!fileId)                     { skipped++; continue; }
-    if (naming !== 'Rename Needed')  { skipped++; continue; }
-    if (approval !== 'YES')          { skipped++; continue; }
-    if (!suggested)                  { skipped++; continue; }
+    if (type === 'Folder')          { skipped++; continue; }
+    if (result === 'Renamed')       { skipped++; continue; }
+    if (naming !== 'Rename Needed') { skipped++; continue; }
+    if (approval !== 'YES')         { skipped++; continue; }
+
+    // Log important skips
+    if (!fileId) {
+      _log(log, 'Rename Skipped', fileId, fileName, suggested, brand, 'Skipped', 'Missing File ID');
+      skipped++; continue;
+    }
+    if (!suggested) {
+      _log(log, 'Rename Skipped', fileId, fileName, '', brand, 'Skipped', 'Missing Suggested New Name');
+      skipped++; continue;
+    }
 
     try {
       DriveApp.getFileById(fileId).setName(suggested);
@@ -366,24 +359,31 @@ function renameApprovedFiles() {
       sheet.getRange(sheetRow, RENAME_COL.RESULT       + 1).setValue('Renamed').setBackground('#d4edda');
       sheet.getRange(sheetRow, RENAME_COL.RENAMED_DATE + 1).setValue(now);
 
-      _logAction(log, now, 'Renamed', brand, suggested, fileName, suggested, 'Success', '');
+      _log(log, 'Rename', fileId, fileName, suggested, brand, 'Success', '');
       renamed++;
       Logger.log('Renamed [row ' + sheetRow + '] ' + fileId + ' → "' + suggested + '"');
 
     } catch (e) {
+      var errMsg = e.message || 'Unknown error';
       sheet.getRange(sheetRow, RENAME_COL.RESULT + 1)
-        .setValue('Error: ' + e.message)
+        .setValue('Error: ' + errMsg)
         .setBackground('#f8d7da');
-      _logAction(log, now, 'Rename Failed', brand, fileName, fileName, suggested, 'Error', e.message);
+
+      // Classify the error for the log
+      var errType = 'Failed';
+      if (/permission|access|not authorized/i.test(errMsg)) errType = 'Permission Denied';
+      if (/duplicate|already exists/i.test(errMsg))         errType = 'Duplicate Name';
+
+      _log(log, 'Rename', fileId, fileName, suggested, brand, errType, errMsg);
       failed++;
-      Logger.log('Rename failed [row ' + sheetRow + '] ' + fileId + ': ' + e.message);
+      Logger.log('Rename failed [row ' + sheetRow + '] ' + fileId + ': ' + errMsg);
     }
   }
 
   SpreadsheetApp.flush();
 
-  _logAction(log, _now(), 'Rename Summary', '', '', '', '',
-    failed > 0 ? 'Partial' : 'OK',
+  _log(log, 'Rename Summary', '', '', '', '',
+    failed > 0 ? 'Partial' : 'Success',
     'Renamed: ' + renamed + '  Failed: ' + failed + '  Skipped: ' + skipped);
 
   var summary =
@@ -397,6 +397,14 @@ function renameApprovedFiles() {
   Logger.log('renameApprovedFiles done — renamed=' + renamed + ' failed=' + failed + ' skipped=' + skipped);
 }
 
+// ─── View Automation Log ──────────────────────────────────────────────────────
+
+function viewAutomationLog() {
+  var ss    = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = _getOrCreateLogSheet(ss);
+  ss.setActiveSheet(sheet);
+}
+
 // ─── Automation Log helpers ───────────────────────────────────────────────────
 
 function _getOrCreateLogSheet(ss) {
@@ -408,20 +416,37 @@ function _getOrCreateLogSheet(ss) {
       .setFontWeight('bold')
       .setBackground('#e8f0fe');
     sheet.setFrozenRows(1);
-    sheet.setColumnWidth(1, 160);
-    sheet.setColumnWidth(5, 220);
-    sheet.setColumnWidth(6, 220);
-    sheet.setColumnWidth(8, 260);
+    // Column widths
+    sheet.setColumnWidth(1, 155); // Timestamp
+    sheet.setColumnWidth(2, 130); // Action
+    sheet.setColumnWidth(3, 200); // File ID
+    sheet.setColumnWidth(4, 220); // Old File Name
+    sheet.setColumnWidth(5, 220); // New File Name
+    sheet.setColumnWidth(6, 110); // Brand
+    sheet.setColumnWidth(7, 110); // Result
+    sheet.setColumnWidth(8, 280); // Message
+    sheet.setColumnWidth(9, 120); // Triggered By
     Logger.log('Created Automation Log tab');
   }
   return sheet;
 }
 
-function _logAction(logSheet, timestamp, action, brand, fileName, oldName, newName, result, notes) {
+// Append one row to the Automation Log. Never deletes existing rows.
+function _log(logSheet, action, fileId, oldName, newName, brand, result, message) {
   try {
-    logSheet.appendRow([timestamp, action, brand, fileName, oldName, newName, result, notes || '']);
+    logSheet.appendRow([
+      _now(),
+      action,
+      fileId   || '',
+      oldName  || '',
+      newName  || '',
+      brand    || '',
+      result   || '',
+      message  || '',
+      _triggeredBy || 'Manual',
+    ]);
   } catch(e) {
-    Logger.log('_logAction error: ' + e.message);
+    Logger.log('_log error: ' + e.message);
   }
 }
 
@@ -430,36 +455,27 @@ function _now() {
 }
 
 function _safeAlert(msg) {
-  try { SpreadsheetApp.getUi().alert(msg); } catch(e) { /* trigger context — skip alert */ }
+  try { SpreadsheetApp.getUi().alert(msg); } catch(e) { /* trigger context — skip */ }
 }
 
 // ─── Name Generation Helpers ──────────────────────────────────────────────────
 
-// Builds: BRAND_PARENTFOLDER_DESCRIPTION_YYYYMMDD
 function _buildSuggestedName(brand, parent, fileName, today) {
   var brandPart  = _normalizeBrand(brand);
   var folderPart = _normalizeFolder(parent);
   var descPart   = _deriveDescription(fileName, brand, folderPart);
-
   var parts = [brandPart, folderPart];
   if (descPart) parts.push(descPart);
   parts.push(today);
-
   return parts.join('_');
 }
 
 function _normalizeBrand(brand) {
-  return (brand || 'UNASSIGNED')
-    .toUpperCase()
-    .replace(/[\s\-]/g, '');
+  return (brand || 'UNASSIGNED').toUpperCase().replace(/[\s\-]/g, '');
 }
 
 function _normalizeFolder(folderName) {
-  return (folderName || 'ASSETS')
-    .toUpperCase()
-    .replace(/[^A-Z0-9\s]/g, '')
-    .trim()
-    .replace(/\s+/g, '_');
+  return (folderName || 'ASSETS').toUpperCase().replace(/[^A-Z0-9\s]/g, '').trim().replace(/\s+/g, '_');
 }
 
 function _deriveDescription(fileName, brand, folderNorm) {
@@ -486,10 +502,7 @@ function _deriveDescription(fileName, brand, folderNorm) {
 
 function getOrCreateSheet(ss, name) {
   var sheet = ss.getSheetByName(name);
-  if (!sheet) {
-    sheet = ss.insertSheet(name);
-    Logger.log('Created new sheet tab: ' + name);
-  }
+  if (!sheet) { sheet = ss.insertSheet(name); Logger.log('Created tab: ' + name); }
   return sheet;
 }
 
@@ -517,10 +530,10 @@ function scanFolder(folder, parentPath, results) {
     results.push({
       fileId: file.getId(), fileName: fName,
       type: getMimeLabel(file.getMimeType()), mimeType: file.getMimeType(),
-      brand: fBrand !== 'UNASSIGNED' ? fBrand : brand, parent: name, path: path,
-      url: file.getUrl(), created: safeDate(file.getDateCreated()),
-      modified: safeDate(file.getLastUpdated()), owner: getOwnerEmail(file),
-      size: formatSize(file.getSize()),
+      brand: fBrand !== 'UNASSIGNED' ? fBrand : brand,
+      parent: name, path: path, url: file.getUrl(),
+      created: safeDate(file.getDateCreated()), modified: safeDate(file.getLastUpdated()),
+      owner: getOwnerEmail(file), size: formatSize(file.getSize()),
       naming: checkNaming(fName, fBrand !== 'UNASSIGNED' ? fBrand : brand),
       status: 'Synced',
     });
@@ -558,9 +571,7 @@ function checkNaming(filename, brand) {
   if (parts.length < 2) return 'Rename Needed';
   var p0         = parts[0].toUpperCase().replace(/[-\s]/g, '');
   var knownNorms = DC.BRANDS.map(function(b) { return b.toUpperCase().replace(/[-\s]/g, ''); });
-  var brandMatch = knownNorms.indexOf(p0) > -1;
-  var hasCategory = parts.length >= 2 && parts[1].length >= 2;
-  if (brandMatch && hasCategory) return 'OK';
+  if (knownNorms.indexOf(p0) > -1 && parts[1].length >= 2) return 'OK';
   return 'Rename Needed';
 }
 
@@ -588,12 +599,11 @@ function formatSize(bytes) {
   return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
 }
 
-// ─── Write to Drive Live Registry ────────────────────────────────────────────
+// ─── Write to Drive Live Registry ─────────────────────────────────────────────
 
 function writeToSheet(sheet, rows, syncTime) {
   var syncTimeStr = Utilities.formatDate(syncTime, Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss');
 
-  // Preserve rename workflow columns by File ID before wiping
   var savedRename = {};
   var lastRow = sheet.getLastRow();
   if (lastRow > 1) {
@@ -613,7 +623,6 @@ function writeToSheet(sheet, rows, syncTime) {
     sheet.getRange(2, 1, lastRow - 1, REGISTRY_HEADERS.length).clearContent().clearFormat();
   }
 
-  // Header: sync cols blue, workflow cols amber
   sheet.getRange(1, 1, 1, 15).setValues([REGISTRY_HEADERS.slice(0, 15)]).setFontWeight('bold').setBackground('#e8f0fe');
   sheet.getRange(1, 16, 1, 5).setValues([REGISTRY_HEADERS.slice(15)]).setFontWeight('bold').setBackground('#fef3c7');
 
@@ -632,21 +641,17 @@ function writeToSheet(sheet, rows, syncTime) {
 
   sheet.getRange(2, 1, output.length, REGISTRY_HEADERS.length).setValues(output);
 
-  // Naming Check colors
-  var namingColors = rows.map(function(r) {
+  sheet.getRange(2, 13, rows.length, 1).setBackgrounds(rows.map(function(r) {
     if (r.naming === 'OK')            return ['#d4edda'];
     if (r.naming === 'Folder')        return ['#e8eaf6'];
     if (r.naming === 'Rename Needed') return ['#f8d7da'];
     return [null];
-  });
-  sheet.getRange(2, 13, rows.length, 1).setBackgrounds(namingColors);
+  }));
 
-  // Folder row shade in Type column
   sheet.getRange(2, 3, rows.length, 1).setBackgrounds(
     rows.map(function(r) { return r.type === 'Folder' ? ['#f0f3ff'] : [null]; })
   );
 
-  // Rename Result colors
   sheet.getRange(2, RENAME_COL.RESULT + 1, output.length, 1).setBackgrounds(
     output.map(function(r) {
       var res = (r[RENAME_COL.RESULT] || '').toString();
@@ -665,7 +670,7 @@ function writeToSheet(sheet, rows, syncTime) {
 
 function updateKPISummary(ss, rows) {
   var exec = ss.getSheetByName(DC.EXEC_TAB);
-  if (!exec) { Logger.log('Executive Dashboard tab not found — skipping KPI update'); return; }
+  if (!exec) { Logger.log('Executive Dashboard tab not found — skipping'); return; }
 
   var files   = rows.filter(function(r) { return r.type !== 'Folder'; });
   var folders = rows.filter(function(r) { return r.type === 'Folder'; });
@@ -693,8 +698,6 @@ function updateKPISummary(ss, rows) {
   exec.getRange(2, 2).setValue(new Date());
   exec.getRange(3, 1, 1, kpiHeaders.length).setValues([kpiHeaders]).setFontWeight('bold').setBackground('#f3f3f3');
   exec.getRange(4, 1, 1, kpiValues.length).setValues([kpiValues]);
-
-  Logger.log('KPI update: brands=' + totalBrands + ' assets=' + totalAssets + ' rename=' + renameNeeded + ' health=' + health + '%');
 }
 
 // ─── Trigger Management ───────────────────────────────────────────────────────
@@ -712,7 +715,7 @@ function setupHourlyTrigger() {
     '  2. Auto Suggest Names\n' +
     '  3. Auto Approve New Files\n' +
     '  4. Rename Approved Files\n\n' +
-    'All actions are logged to the Automation Log tab.'
+    'All actions logged to the Automation Log tab.'
   );
 }
 
