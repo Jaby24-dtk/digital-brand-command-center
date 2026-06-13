@@ -354,10 +354,11 @@ function renameApprovedFiles() {
     try {
       DriveApp.getFileById(fileId).setName(suggested);
 
-      sheet.getRange(sheetRow, RENAME_COL.FILE_NAME    + 1).setValue(suggested);
-      sheet.getRange(sheetRow, RENAME_COL.NAMING       + 1).setValue('OK').setBackground('#d4edda');
-      sheet.getRange(sheetRow, RENAME_COL.RESULT       + 1).setValue('Renamed').setBackground('#d4edda');
-      sheet.getRange(sheetRow, RENAME_COL.RENAMED_DATE + 1).setValue(now);
+      sheet.getRange(sheetRow, RENAME_COL.FILE_NAME      + 1).setValue(suggested);
+      sheet.getRange(sheetRow, RENAME_COL.NAMING         + 1).setValue('OK').setBackground('#d4edda');
+      sheet.getRange(sheetRow, RENAME_COL.RESULT         + 1).setValue('Renamed').setBackground('#d4edda');
+      sheet.getRange(sheetRow, RENAME_COL.RENAMED_DATE   + 1).setValue(now);
+      sheet.getRange(sheetRow, RENAME_COL.SKIPPED_REASON + 1).setValue('');
 
       _log(log, 'Rename', fileId, fileName, suggested, brand, 'Success', '');
       renamed++;
@@ -464,7 +465,9 @@ function _buildSuggestedName(brand, parent, fileName, today) {
   var brandPart  = _normalizeBrand(brand);
   var folderPart = _normalizeFolder(parent);
   var descPart   = _deriveDescription(fileName, brand, folderPart);
-  var parts = [brandPart, folderPart];
+  var parts = [brandPart];
+  // Skip folder if it's the same as the brand to avoid DETEKLAB_DETEKLAB_...
+  if (folderPart && folderPart !== brandPart) parts.push(folderPart);
   if (descPart) parts.push(descPart);
   parts.push(today);
   return parts.join('_');
