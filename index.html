@@ -214,6 +214,11 @@ body::after{content:'';position:fixed;top:-200px;right:-100px;width:700px;height
 .text-success{color:var(--status-success)!important}.text-warning{color:var(--status-warning)!important}
 .text-danger{color:var(--status-danger)!important}.text-muted{color:var(--text-muted)!important}
 .text-pink{color:var(--pink)!important}
+.rr-name{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-family:'SF Mono','Fira Code','Consolas',monospace;display:block}
+.rr-name--old{color:var(--text-secondary)}
+.rr-name--new{color:var(--text-primary);font-weight:600}
+.rr-arrow{color:var(--text-muted);font-size:13px;padding:0 2px;vertical-align:middle}
+.rr-empty{padding:40px;text-align:center;color:var(--text-muted);font-size:13px}
 .kpi-grid--5{grid-template-columns:repeat(5,1fr)}
 .kpi-card--text .kpi-value{font-size:16px;font-weight:700;letter-spacing:0;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @media(max-width:1200px){.kpi-grid--5{grid-template-columns:repeat(3,1fr)}}
@@ -608,6 +613,28 @@ function parseAutomationKPIs(rows, lastSyncFromRegistry) {
   };
 }
 
+function parseRecentRenames(rows) {
+  if (!rows || rows.length < 2) return [];
+  return rows.slice(1)
+    .filter(function(r) { return (r[LOG_COL.ACTION]||'').trim() === 'Rename'; })
+    .sort(function(a, b) {
+      var ta = (a[LOG_COL.TIMESTAMP]||''), tb = (b[LOG_COL.TIMESTAMP]||'');
+      return tb > ta ? 1 : tb < ta ? -1 : 0;
+    })
+    .slice(0, 20)
+    .map(function(r) {
+      return {
+        timestamp:   (r[LOG_COL.TIMESTAMP]   ||'').trim(),
+        oldName:     (r[LOG_COL.OLD_NAME]    ||'').trim(),
+        newName:     (r[LOG_COL.NEW_NAME]    ||'').trim(),
+        brand:       (r[LOG_COL.BRAND]       ||'').trim(),
+        result:      (r[LOG_COL.RESULT]      ||'').trim(),
+        message:     (r[LOG_COL.MESSAGE]     ||'').trim(),
+        triggeredBy: (r[LOG_COL.TRIGGERED_BY]||'').trim(),
+      };
+    });
+}
+
 function _withTimeout(promise, ms) {
   return Promise.race([
     promise,
@@ -646,6 +673,7 @@ async function fetchLiveData() {
   return {
     kpis:             parseKPIs(rows),
     automationKpis:   parseAutomationKPIs(logRows, lastSyncFromRegistry),
+    recentRenames:    parseRecentRenames(logRows),
     brands:           brands.length ? brands : [],
     recentUploads:    parseRecentUploads(rows),
     actions:          parseActions(rows),
@@ -847,6 +875,46 @@ function DriveSyncStatus(data) {
     SectionHeader({title:'Drive Sync Status',subtitle:errors>0?errors+' total errors':'All drives healthy'}) +
     '<div class="drive-grid">' + data.map(DriveSyncCard).join('') + '</div></section>';
 }
+
+function RecentRenameRow(item) {
+  const brand     = CONFIG.BRANDS.find(function(b) { return b.id === item.brand; }) || {};
+  const isSuccess = item.result === 'Success';
+  const isFailed  = !isSuccess;
+  const timeStr   = item.timestamp ? relativeTime(item.timestamp.replace(' ', 'T')) : '—';
+  const resultBadge = isSuccess
+    ? '<span class="badge badge--green">Renamed</span>'
+    : '<span class="badge badge--red" title="' + (item.message||'') + '">' + (item.result||'Failed') + '</span>';
+  const rowBg = isFailed ? 'background:rgba(196,48,64,0.04);' : '';
+  return '<tr style="' + rowBg + '">' +
+    '<td style="width:110px"><div class="brand-cell"><span class="brand-color-bar" style="background:' + (brand.color||'#888') + '"></span>' +
+    '<span style="font-size:12px;font-weight:600;letter-spacing:.04em;color:' + (brand.color||'var(--text-muted)') + '">' + (item.brand||'—') + '</span></div></td>' +
+    '<td style="width:26%"><span class="rr-name rr-name--old" title="' + item.oldName + '">' + (item.oldName||'—') + '</span></td>' +
+    '<td style="width:28px;text-align:center"><i class="ph ph-arrow-right rr-arrow"></i></td>' +
+    '<td><span class="rr-name rr-name--new" title="' + item.newName + '">' + (item.newName||'—') + '</span></td>' +
+    '<td style="width:90px">' + resultBadge + '</td>' +
+    '<td style="width:90px;font-size:11px;white-space:nowrap;color:var(--text-muted)">' + timeStr + '</td>' +
+    '</tr>';
+}
+
+function RecentRenames(renames) {
+  const successCount = (renames||[]).filter(function(r) { return r.result === 'Success'; }).length;
+  const failCount    = (renames||[]).length - successCount;
+  const subtitle     = renames && renames.length
+    ? successCount + ' successful' + (failCount > 0 ? ' · ' + failCount + ' failed' : '')
+    : 'No renames logged yet';
+
+  const body = (renames && renames.length)
+    ? renames.map(RecentRenameRow).join('')
+    : '<tr><td colspan="6"><div class="rr-empty">No rename actions logged yet.<br>Run <strong>DBCC → Sync + Auto Rename New Files</strong> from your Google Sheet.</div></td></tr>';
+
+  return '<section id="recent-renames" class="dashboard-section">' +
+    SectionHeader({title:'Recent Renames', subtitle:subtitle}) +
+    '<div class="glass-card table-card"><div class="table-scroll">' +
+    '<table class="data-table" style="min-width:700px">' +
+    '<thead><tr><th>Brand</th><th>Old Name</th><th></th><th>New Name</th><th>Result</th><th>Time</th></tr></thead>' +
+    '<tbody>' + body + '</tbody>' +
+    '</table></div></div></section>';
+}
   </script>
 
   <!-- ═══════════════════════════════════════════════════════════════
@@ -934,9 +1002,10 @@ function _registryUrl() {
     var root = document.getElementById('dashboard-content');
     if (!root) return;
     var html = '';
-    try { html += KPIGrid(data.kpis); }                           catch(e) { html += _sectionErr('KPI Grid',e); }
-    try { html += AutomationKPIGrid(data.automationKpis||{}); }   catch(e) { html += _sectionErr('Automation KPIs',e); }
-    try { html += BrandAssetSummary(data.brands); }               catch(e) { html += _sectionErr('Brand Summary',e); }
+    try { html += KPIGrid(data.kpis); }                              catch(e) { html += _sectionErr('KPI Grid',e); }
+    try { html += AutomationKPIGrid(data.automationKpis||{}); }    catch(e) { html += _sectionErr('Automation KPIs',e); }
+    try { html += RecentRenames(data.recentRenames||[]); }          catch(e) { html += _sectionErr('Recent Renames',e); }
+    try { html += BrandAssetSummary(data.brands); }                catch(e) { html += _sectionErr('Brand Summary',e); }
     try {
       html += '<div class="two-col">';
       try { html += RecentUploads(data.recentUploads); } catch(e) { html += _sectionErr('Recent Uploads',e); }
@@ -1063,7 +1132,7 @@ function _registryUrl() {
         '<div class="sidebar__logo"><div class="logo-mark"><i class="ph ph-crown-simple"></i></div>' +
         '<div class="logo-text"><span class="logo-title">DBCC</span><span class="logo-sub">Brand Command</span></div></div>' +
         '<nav class="sidebar__nav">' +
-        [['kpi-section','chart-bar','Overview'],['automation-log','robot','Automation'],['brand-summary','stack','Brands'],['recent-uploads','upload-simple','Uploads'],['priority-actions','list-checks','Actions'],['rename-compliance','pencil-simple','Rename'],['drive-sync','hard-drives','Drive Sync']].map(function(item,i) {
+        [['kpi-section','chart-bar','Overview'],['automation-log','robot','Automation'],['recent-renames','arrow-counter-clockwise','Renames'],['brand-summary','stack','Brands'],['recent-uploads','upload-simple','Uploads'],['priority-actions','list-checks','Actions'],['rename-compliance','pencil-simple','Compliance'],['drive-sync','hard-drives','Drive Sync']].map(function(item,i) {
           return '<a href="#' + item[0] + '" class="nav-item' + (i===0?' nav-item--active':'') + '" data-section="' + item[0] + '"><i class="ph ph-' + item[1] + '"></i><span>' + item[2] + '</span></a>';
         }).join('') +
         '</nav><div class="sidebar__footer"><div class="live-indicator"><span class="pulse-dot"></span><span class="live-label">Live</span></div></div></aside>' +
