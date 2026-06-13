@@ -568,11 +568,16 @@ function detectBrand(name, path) {
 function checkNaming(filename, brand) {
   var base  = filename.replace(/\.[^.]+$/, '');
   var parts = base.split('_');
-  if (parts.length < 2) return 'Rename Needed';
+  // Require full standard format: BRAND_FOLDER_DESCRIPTION_YYYYMMDD (≥4 parts)
+  if (parts.length < 4) return 'Rename Needed';
+  // First part must be a known brand (case-insensitive)
   var p0         = parts[0].toUpperCase().replace(/[-\s]/g, '');
   var knownNorms = DC.BRANDS.map(function(b) { return b.toUpperCase().replace(/[-\s]/g, ''); });
-  if (knownNorms.indexOf(p0) > -1 && parts[1].length >= 2) return 'OK';
-  return 'Rename Needed';
+  if (knownNorms.indexOf(p0) < 0) return 'Rename Needed';
+  // Last part must be an 8-digit date (YYYYMMDD)
+  var lastPart = parts[parts.length - 1];
+  if (!/^\d{8}$/.test(lastPart)) return 'Rename Needed';
+  return 'OK';
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
