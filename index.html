@@ -488,11 +488,11 @@ function parseBrandSummary(rows) {
 function parseRecentUploads(rows) {
   const MIME_MAP = { pdf:'doc',ai:'vector',svg:'vector',eps:'vector',psd:'image',png:'image',jpg:'image',jpeg:'image',webp:'image',mp4:'video',mov:'video',avi:'video',zip:'archive',rar:'archive' };
   return rows.slice(1).filter(r => (r[COL.TYPE]||'') !== 'Folder' && r[COL.NAME])
-    .sort((a,b) => new Date(b[COL.MODIFIED]||0).getTime() - new Date(a[COL.MODIFIED]||0).getTime())
+    .sort((a,b) => new Date(b[COL.CREATED]||0).getTime() - new Date(a[COL.CREATED]||0).getTime())
     .slice(0,10).map(r => {
       const filename = r[COL.NAME]||'Unknown';
       const ext = filename.split('.').pop().toLowerCase();
-      const dateRaw = (r[COL.MODIFIED]||r[COL.CREATED]||'').substring(0,10);
+      const dateRaw = (r[COL.CREATED]||'').substring(0,10);
       return { filename, brand:(r[COL.BRAND]||'UNASSIGNED').toUpperCase().trim(), date:dateRaw||'—', size:r[COL.SIZE]||'—', status:'auto-logged', type:MIME_MAP[ext]||'file' };
     });
 }

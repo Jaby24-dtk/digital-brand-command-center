@@ -474,7 +474,7 @@ function _log(logSheet, action, fileId, oldName, newName, brand, result, message
 }
 
 function _now() {
-  return Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss');
+  return new Date().toISOString();
 }
 
 function _safeAlert(msg) {
@@ -618,7 +618,7 @@ function getParentName(folder) {
 }
 
 function safeDate(d) {
-  try { return d ? Utilities.formatDate(d, Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm') : ''; } catch(e) { return ''; }
+  try { return d ? d.toISOString() : ''; } catch(e) { return ''; }
 }
 
 function formatSize(bytes) {
@@ -632,7 +632,7 @@ function formatSize(bytes) {
 // ─── Write to Drive Live Registry ─────────────────────────────────────────────
 
 function writeToSheet(sheet, rows, syncTime) {
-  var syncTimeStr = Utilities.formatDate(syncTime, Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss');
+  var syncTimeStr = syncTime.toISOString();
 
   var savedRename = {};
   var lastRow = sheet.getLastRow();
