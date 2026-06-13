@@ -341,6 +341,10 @@ const CONFIG = {
   REFRESH_INTERVAL: 300000,
   TITLE: 'Digital Brand Command Center',
   ORG_NAME: 'I-BG Creative',
+  // Paste your Apps Script web app URL here after deploying.
+  // Deploy: Extensions → Apps Script → Deploy → New Deployment →
+  //   Type: Web App · Execute as: Me · Access: Anyone → Deploy
+  WEB_APP_URL: 'https://script.google.com/macros/s/AKfycbyhAUHYESYMwgk9dRdTIj6D6ISDYTTnz0l-H65cKEgN8VM8KiFkS6U2A4UJOf6w0B7t/exec',
 };
   </script>
 
@@ -644,24 +648,43 @@ function _withTimeout(promise, ms) {
   ]);
 }
 
-async function fetchLiveData() {
-  // Fetch both tabs in parallel; Automation Log failure never blocks the main load
-  var registryPromise = fetchTab(CONFIG.TAB_NAMES.DRIVE_REGISTRY);
-  var logPromise = _withTimeout(
-    fetchTab(CONFIG.TAB_NAMES.AUTOMATION_LOG),
-    8000
-  ).catch(function(e) {
-    console.warn('[DBCC] Automation Log not available:', e.message);
-    return [];
-  });
+async function fetchViaWebApp() {
+  console.log('[DBCC] Fetching via web app:', CONFIG.WEB_APP_URL);
+  const res = await _withTimeout(
+    fetch(CONFIG.WEB_APP_URL, { redirect: 'follow', cache: 'no-store' }),
+    12000
+  );
+  if (!res.ok) throw new Error('Web app returned HTTP ' + res.status);
+  const data = await res.json();
+  if (data.error) throw new Error('Web app error: ' + data.error);
+  return data;
+}
 
-  var rows = await registryPromise;
+async function fetchLiveData() {
+  var rows, logRows;
+
+  if (CONFIG.WEB_APP_URL) {
+    // Web app: always-fresh data, no gviz caching
+    var appData = await fetchViaWebApp();
+    rows    = appData.registry || [];
+    logRows = appData.log      || [];
+    console.log('[DBCC] Web app: registry=' + rows.length + ' log=' + logRows.length);
+  } else {
+    // gviz fallback (cached, ~5 min lag)
+    rows = await fetchTab(CONFIG.TAB_NAMES.DRIVE_REGISTRY);
+    logRows = await _withTimeout(
+      fetchTab(CONFIG.TAB_NAMES.AUTOMATION_LOG),
+      8000
+    ).catch(function(e) {
+      console.warn('[DBCC] Automation Log not available:', e.message);
+      return [];
+    });
+  }
+
   if (!rows || rows.length < 2) {
     var err = new Error('Drive Live Registry tab has ' + (rows?rows.length:0) + ' row(s) — needs data. Run DBCC → Sync Drive Files first.');
     err.rows = rows ? rows.length : 0; throw err;
   }
-
-  var logRows = await logPromise;
 
   // Pull the most recent "Last Synced" timestamp from the registry (COL 14)
   var lastSyncFromRegistry = rows.slice(1)
@@ -679,7 +702,7 @@ async function fetchLiveData() {
     actions:          parseActions(rows),
     renameCompliance: parseRenameCompliance(rows),
     driveSync:        parseDriveSync(rows),
-    meta:             { lastUpdated: new Date().toISOString(), source: 'live' },
+    meta:             { lastUpdated: new Date().toISOString(), source: CONFIG.WEB_APP_URL ? 'webapp' : 'gviz' },
   };
 }
 

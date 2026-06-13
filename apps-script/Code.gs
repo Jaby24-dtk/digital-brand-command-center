@@ -398,6 +398,28 @@ function renameApprovedFiles() {
   Logger.log('renameApprovedFiles done — renamed=' + renamed + ' failed=' + failed + ' skipped=' + skipped);
 }
 
+// ─── Web App: live data endpoint (bypasses gviz caching) ─────────────────────
+
+function doGet(e) {
+  try {
+    var ss      = SpreadsheetApp.getActiveSpreadsheet();
+    var regSheet = ss.getSheetByName(DC.REGISTRY_TAB);
+    var logSheet = ss.getSheetByName(DC.AUTOMATION_LOG_TAB);
+    var payload  = {
+      timestamp: new Date().toISOString(),
+      registry:  regSheet ? regSheet.getDataRange().getDisplayValues() : [],
+      log:       logSheet ? logSheet.getDataRange().getDisplayValues() : [],
+    };
+    return ContentService
+      .createTextOutput(JSON.stringify(payload))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch(err) {
+    return ContentService
+      .createTextOutput(JSON.stringify({ error: err.message }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
 // ─── View Automation Log ──────────────────────────────────────────────────────
 
 function viewAutomationLog() {
